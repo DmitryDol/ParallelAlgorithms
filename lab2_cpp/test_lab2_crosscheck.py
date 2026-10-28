@@ -7,29 +7,16 @@ lab1_python/cholesky_ref.py на тех же N и b. Нужна собранна
 """
 
 import importlib.util
-import os
 import subprocess
-from pathlib import Path
 
 import numpy as np
 import pytest
 
-HERE = Path(__file__).resolve().parent
-BUILD_DIR = Path(os.environ.get("LAB2_BUILD_DIR", HERE / "build"))
-VARIANTS = ["noopt", "opt", "opt_novec", "opt_fastmath"]
+from programs import BUILD_DIR, HERE, VARIANTS, find_program
 
 _spec = importlib.util.spec_from_file_location("lab1_cholesky_ref", HERE.parent / "lab1_python" / "cholesky_ref.py")
 ref = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(ref)
-
-
-def find_program(variant: str):
-    """cholesky_<вариант> в каталоге сборки (в т.ч. Release/ у Visual Studio)."""
-    for name in (f"cholesky_{variant}", f"cholesky_{variant}.exe"):
-        found = sorted(BUILD_DIR.rglob(name)) if BUILD_DIR.exists() else []
-        if found:
-            return found[0]
-    return None
 
 
 @pytest.mark.parametrize("variant", VARIANTS)

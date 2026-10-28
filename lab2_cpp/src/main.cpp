@@ -5,6 +5,8 @@
 #include <cmath>
 #include <cstdio>
 #include <exception>
+#include <fstream>
+#include <iomanip>
 #include <string>
 #include <vector>
 
@@ -97,14 +99,14 @@ int dump(const lab2::Options& o) {
     std::vector<double> l(a.size(), 0.0);
     factor(o.mode, a, l, n, o.block);
 
-    std::FILE* f = std::fopen(o.dump.c_str(), "w");
+    std::ofstream f(o.dump);
     if (!f) {
         std::fprintf(stderr, "Ошибка: не удалось открыть файл %s\n", o.dump.c_str());
         return 1;
     }
+    f << std::setprecision(17);  // 17 значащих цифр — число double восстанавливается из текста точно
     for (int i = 0; i < n; ++i)
-        for (int j = 0; j < n; ++j) std::fprintf(f, "%.17g%c", l[static_cast<std::size_t>(i) * n + j], j + 1 < n ? ' ' : '\n');
-    std::fclose(f);
+        for (int j = 0; j < n; ++j) f << l[static_cast<std::size_t>(i) * n + j] << (j + 1 < n ? ' ' : '\n');
     std::printf("L записана в %s, погрешность %.3e\n", o.dump.c_str(), lab2::max_error_vs_exact(l.data(), n));
     return 0;
 }

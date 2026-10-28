@@ -1,0 +1,11 @@
+Дата: 2026-10-28 23:36
+ОС: Linux-6.18.44-fc-v185-x86_64-with-glibc2.39
+Процессор: Intel(R) Xeon(R) Processor
+Логических процессоров: 4
+Параметры: N = 64 96 128 192 256 384 512 768 1024 1536 2048; b = 32; подбор b: N = 1024 2048, b = 4 8 16 24 32 48 64 96 128 192 256; повторов = 3
+
+Сборки:
+  noopt: flags=-O0; compiler=GCC 13.3.0
+  opt: flags=-O3 -march=native; compiler=GCC 13.3.0
+  opt_novec: flags=-O3 -march=native -fno-tree-vectorize; compiler=GCC 13.3.0
+  opt_fastmath: flags=-O3 -march=native -ffast-math; compiler=GCC 13.3.0
