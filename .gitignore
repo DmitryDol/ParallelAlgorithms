@@ -1,0 +1,26 @@
+# Python / uv
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Сборка C/C++ (этапы 2–4)
+build/
+cmake-build-*/
+out/
+*.o
+*.obj
+*.exe
+*.pdb
+*.ilk
+
+# IDE и ОС
+.vscode/
+.idea/
+.vs/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Временные файлы Word
+~$*.docx
