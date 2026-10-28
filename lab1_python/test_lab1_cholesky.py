@@ -3,6 +3,8 @@
     uv run pytest
 """
 
+import csv
+
 import numpy as np
 import pytest
 
@@ -11,6 +13,8 @@ from cholesky_ref import (
     cholesky_point,
     generate_test_matrix,
     growth_orders,
+    main,
+    parse_args,
     solve_triangular_right,
 )
 
@@ -68,3 +72,21 @@ def test_growth_orders():
     assert growth_orders([8, 16, 32], [1.0, 2.0, 8.0]) == pytest.approx([1.0, 2.0])
     assert growth_orders([10, 100], [1.0, 10.0]) == pytest.approx([1.0])
     assert np.isnan(growth_orders([8, 16], [0.0, 1.0])[0])
+
+
+@pytest.mark.parametrize("argv", [["-n", "0"], ["-n", "8", "-5"], ["-b", "0"], ["-n", "abc"]])
+def test_invalid_arguments_are_rejected(argv):
+    with pytest.raises(SystemExit):
+        parse_args(argv)
+
+
+def test_program_run_writes_csv_and_plot(tmp_path):
+    """Запуск так, как его делает пользователь: N в произвольном порядке, N не кратно b."""
+    main(["-n", "20", "7", "-b", "3", "-o", str(tmp_path)])
+
+    with open(tmp_path / "errors.csv", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    assert [int(r["N"]) for r in rows] == [7, 20]
+    assert all(int(r["b"]) == 3 for r in rows)
+    assert all(0.0 <= float(r["err_L"]) < 1e-12 for r in rows)
+    assert (tmp_path / "cholesky_error.png").stat().st_size > 0
