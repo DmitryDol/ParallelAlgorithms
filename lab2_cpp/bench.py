@@ -15,6 +15,7 @@ import argparse
 import csv
 import datetime
 import io
+import json
 import os
 import platform
 import subprocess
@@ -46,23 +47,67 @@ def parse_args(argv=None):
     return args
 
 
-def cpu_name() -> str:
-    if sys.platform.startswith("linux"):
-        try:
-            for line in Path("/proc/cpuinfo").read_text().splitlines():
-                if line.startswith("model name"):
-                    return line.split(":", 1)[1].strip()
-        except OSError:
-            pass
-    if sys.platform == "win32":
-        try:
-            import winreg
+def _cache_text(size_kb: float, instances: int) -> str:
+    """Размер кэша: всего и на одно ядро (как в диспетчере задач Windows указывается «всего»)."""
+    def fmt(kb):
+        return f"{kb / 1024:g} МБ".replace(".", ",") if kb >= 1024 else f"{kb:g} КБ"
+    return fmt(size_kb) if instances <= 1 else f"{fmt(size_kb)} ({instances} × {fmt(size_kb / instances)})"
 
-            key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\CentralProcessor\0")
-            return winreg.QueryValueEx(key, "ProcessorNameString")[0].strip()
-        except OSError:
-            pass
-    return platform.processor() or "неизвестно"
+
+def _linux_hardware() -> dict:
+    out = subprocess.run(["lscpu"], capture_output=True, text=True, env={**os.environ, "LANG": "C", "LC_ALL": "C"}).stdout
+    fields = dict(line.split(":", 1) for line in out.splitlines() if ":" in line)
+    fields = {k.strip(): v.strip() for k, v in fields.items()}
+    info = {"Процессор": fields.get("Model name", "")}
+    if "Core(s) per socket" in fields and "Socket(s)" in fields:
+        info["Физических ядер"] = str(int(fields["Core(s) per socket"]) * int(fields["Socket(s)"]))
+    mhz = fields.get("CPU max MHz")
+    if not mhz:
+        for line in Path("/proc/cpuinfo").read_text().splitlines():
+            if line.startswith("cpu MHz"):
+                mhz = line.split(":", 1)[1].strip()
+                break
+    if mhz:
+        info["Частота процессора"] = f"{float(mhz) / 1000:.2f} ГГц".replace(".", ",")
+    units = {"KiB": 1, "MiB": 1024, "GiB": 1024 * 1024, "K": 1, "M": 1024}
+    for key, name in (("L1d cache", "Кэш L1 данных"), ("L2 cache", "Кэш L2"), ("L3 cache", "Кэш L3")):
+        parts = fields.get(key, "").replace("(", " ").split()
+        if len(parts) >= 2 and parts[1] in units:
+            instances = int(parts[2]) if len(parts) >= 3 and parts[2].isdigit() else 1
+            info[name] = _cache_text(float(parts[0]) * units[parts[1]], instances)
+    return info
+
+
+def _windows_hardware() -> dict:
+    query = ("$p = Get-CimInstance Win32_Processor | Select-Object -First 1 Name,NumberOfCores,MaxClockSpeed,"
+             "L2CacheSize,L3CacheSize; "
+             "$l1 = (Get-CimInstance Win32_CacheMemory | Where-Object Purpose -like 'L1*' | "
+             "Measure-Object InstalledSize -Sum).Sum; "
+             "[pscustomobject]@{p=$p; l1=$l1} | ConvertTo-Json -Depth 3")
+    out = subprocess.run(["powershell", "-NoProfile", "-Command", query], capture_output=True, text=True).stdout
+    data = json.loads(out)
+    cpu, cores = data["p"], int(data["p"]["NumberOfCores"])
+    info = {"Процессор": cpu["Name"].strip(), "Физических ядер": str(cores),
+            "Частота процессора": f"{cpu['MaxClockSpeed'] / 1000:.2f} ГГц".replace(".", ",")}
+    if data.get("l1"):
+        info["Кэш L1 (данные и команды)"] = _cache_text(float(data["l1"]), cores)
+    if cpu.get("L2CacheSize"):
+        info["Кэш L2"] = _cache_text(float(cpu["L2CacheSize"]), cores)
+    if cpu.get("L3CacheSize"):
+        info["Кэш L3"] = _cache_text(float(cpu["L3CacheSize"]), 1)
+    return info
+
+
+def hardware_info() -> dict:
+    """Характеристики компьютера для отчёта; чего узнать не удалось — пропускается."""
+    try:
+        info = _linux_hardware() if sys.platform.startswith("linux") else _windows_hardware() \
+            if sys.platform == "win32" else {}
+    except (OSError, ValueError, KeyError, TypeError):
+        info = {}
+    info.setdefault("Процессор", platform.processor() or "неизвестно")
+    info["Логических процессоров"] = str(os.cpu_count())
+    return info
 
 
 def run_program(program: Path, args: list[str]) -> list[dict]:
@@ -105,8 +150,7 @@ def main(argv=None):
     info = [
         f"Дата: {datetime.datetime.now():%Y-%m-%d %H:%M}",
         f"ОС: {platform.platform()}",
-        f"Процессор: {cpu_name()}",
-        f"Логических процессоров: {os.cpu_count()}",
+        *(f"{key}: {value}" for key, value in hardware_info().items()),
         f"Параметры: N = {' '.join(sizes)}; b = {args.block}; подбор b: N = {' '.join(sweep_sizes)}, "
         f"b = {' '.join(map(str, sorted(set(args.blocks))))}; повторов = {args.repeats}",
         "",

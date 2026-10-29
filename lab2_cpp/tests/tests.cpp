@@ -213,6 +213,9 @@ void test_parse_args() {
     CHECK(o.mode == lab2::Mode::block);
     CHECK(o.repeats == 5);
     CHECK(o.csv);
+    CHECK(o.min_total == 1.0);
+    CHECK(lab2::parse_args({"--min-total", "0"}).min_total == 0.0);
+    CHECK(lab2::parse_args({"--min-total", "2.5"}).min_total == 2.5);
 
     const lab2::Options d = lab2::parse_args({"--dump", "L.txt", "-n", "37", "-m", "point"});
     CHECK(d.dump == "L.txt");
@@ -226,6 +229,8 @@ void test_parse_args() {
     CHECK(rejected({"-b", "0"}));
     CHECK(rejected({"-r", "0"}));
     CHECK(rejected({"-m", "fast"}));
+    CHECK(rejected({"--min-total", "-1"}));
+    CHECK(rejected({"--min-total", "abc"}));
     CHECK(rejected({"--unknown"}));
     CHECK(rejected({"--dump", "L.txt", "-n", "8", "16", "-m", "block"}));  // для выгрузки нужна одна N
     CHECK(rejected({"--dump", "L.txt", "-n", "8"}));                       // и один режим

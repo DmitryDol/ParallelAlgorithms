@@ -44,6 +44,7 @@ std::string compiler() {
 struct Measurement {
     double t_min, t_median;  // время одного разложения, с
     int batch;               // сколько разложений подряд входит в один замер
+    int repeats;             // сколько замеров сделано
     double error;            // max |L − L_точн|
 };
 
@@ -61,9 +62,11 @@ void factor(lab2::Mode mode, const std::vector<double>& a, std::vector<double>& 
 }
 
 // Замеряется только разложение. Первый запуск — прогрев и калибровка: если разложение короче min_time,
-// в один замер входит пачка из batch разложений, а время делится на batch.
+// в один замер входит пачка из batch разложений, а время делится на batch. Замеров не меньше repeats; короткие
+// повторяются, пока суммарно не займут min_total секунд, — так кратковременная помеха не портит все замеры точки.
 Measurement measure(lab2::Mode mode, const std::vector<double>& a, std::vector<double>& l, int n, int b,
-                    int repeats, double min_time) {
+                    int repeats, double min_time, double min_total) {
+    constexpr std::size_t kMaxRepeats = 100;
     Clock::time_point start = Clock::now();
     factor(mode, a, l, n, b);
     const double first = seconds_since(start);
@@ -74,16 +77,19 @@ Measurement measure(lab2::Mode mode, const std::vector<double>& a, std::vector<d
         times.push_back(first);
     else
         batch = static_cast<int>(std::ceil(min_time / std::max(first, 1e-9)));
-    while (static_cast<int>(times.size()) < repeats) {
+    double total = first;
+    while (static_cast<int>(times.size()) < repeats || (total < min_total && times.size() < kMaxRepeats)) {
         start = Clock::now();
         for (int k = 0; k < batch; ++k) factor(mode, a, l, n, b);
-        times.push_back(seconds_since(start) / batch);
+        const double elapsed = seconds_since(start);
+        total += elapsed;
+        times.push_back(elapsed / batch);
     }
 
     std::sort(times.begin(), times.end());
     const std::size_t m = times.size();
     const double median = m % 2 ? times[m / 2] : 0.5 * (times[m / 2 - 1] + times[m / 2]);
-    return {times.front(), median, batch, lab2::max_error_vs_exact(l.data(), n)};
+    return {times.front(), median, batch, static_cast<int>(m), lab2::max_error_vs_exact(l.data(), n)};
 }
 
 const char* mode_name(lab2::Mode mode) { return mode == lab2::Mode::point ? "point" : "block"; }
@@ -125,12 +131,12 @@ int run(const lab2::Options& o) {
         const std::vector<double> a = lab2::make_test_matrix(n);
         std::vector<double> l(a.size(), 0.0);  // память под L выделяется и заполняется до замеров
         for (lab2::Mode mode : modes(o.mode)) {
-            const Measurement r = measure(mode, a, l, n, o.block, o.repeats, o.min_time);
+            const Measurement r = measure(mode, a, l, n, o.block, o.repeats, o.min_time, o.min_total);
             const double gflops = std::pow(static_cast<double>(n), 3) / 3.0 / r.t_min / 1e9;
             const std::string b = mode == lab2::Mode::block ? std::to_string(o.block) : "";
             if (o.csv)
                 std::printf("%s,%s,\"%s\",%s,%d,%s,%d,%d,%.6e,%.6e,%.4f,%.6e\n", LAB2_VARIANT, LAB2_FLAGS,
-                            compiler().c_str(), mode_name(mode), n, b.c_str(), o.repeats, r.batch, r.t_min,
+                            compiler().c_str(), mode_name(mode), n, b.c_str(), r.repeats, r.batch, r.t_min,
                             r.t_median, gflops, r.error);
             else
                 std::printf("%6d | %-5s | %4s | %11.4e | %11.4e | %8.3f | %11.3e\n", n, mode_name(mode), b.c_str(),

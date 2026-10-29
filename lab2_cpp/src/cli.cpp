@@ -13,6 +13,19 @@ bool looks_like_option(const std::string& s) {
     return s.size() >= 2 && s[0] == '-' && (s[1] == '-' || std::isalpha(static_cast<unsigned char>(s[1])));
 }
 
+double parse_seconds(const std::string& text) {
+    std::size_t pos = 0;
+    double value = -1.0;
+    try {
+        value = std::stod(text, &pos);
+    } catch (const std::exception&) {
+        pos = 0;
+    }
+    if (pos == 0 || pos != text.size() || !(value >= 0.0 && value <= 3600.0))
+        throw std::invalid_argument("время должно быть числом секунд от 0 до 3600, получено «" + text + "»");
+    return value;
+}
+
 int parse_positive(const std::string& text, const std::string& what) {
     std::size_t pos = 0;
     int value = 0;
@@ -47,6 +60,8 @@ Options parse_args(const std::vector<std::string>& args) {
             o.block = parse_positive(next_value(), "b");
         } else if (arg == "-r" || arg == "--repeats") {
             o.repeats = parse_positive(next_value(), "число повторов");
+        } else if (arg == "--min-total") {
+            o.min_total = parse_seconds(next_value());
         } else if (arg == "-m" || arg == "--mode") {
             const std::string& m = next_value();
             if (m == "point")
@@ -84,7 +99,8 @@ std::string usage() {
            "  -n, --sizes N...    размерности матрицы (по умолчанию 128 256 512 1024)\n"
            "  -b, --block B       размер блока (по умолчанию 32)\n"
            "  -m, --mode M        point — точечный алгоритм, block — блочный, both — оба (по умолчанию)\n"
-           "  -r, --repeats R     число замеров на точку (по умолчанию 3)\n"
+           "  -r, --repeats R     наименьшее число замеров на точку (по умолчанию 3)\n"
+           "      --min-total S   повторять замеры, пока суммарно не займут S секунд (по умолчанию 1)\n"
            "      --csv           вывод в формате CSV\n"
            "      --dump FILE     записать найденную L в файл (одна N, один режим)\n"
            "      --info          сведения о сборке (вариант, ключи компиляции, компилятор)\n"

@@ -58,7 +58,7 @@ function(lab2_variant name)
 
     add_test(NAME unit_${name} COMMAND tests_${name})
     # Программа целиком: N не кратно b, N < b, N = 1; ненулевой код возврата, если погрешность велика.
-    add_test(NAME run_${name} COMMAND cholesky_${name} -n 1 2 37 100 -b 8 -r 1)
+    add_test(NAME run_${name} COMMAND cholesky_${name} -n 1 2 37 100 -b 8 -r 1 --min-total 0)
     add_test(NAME rejects_bad_args_${name} COMMAND cholesky_${name} -n 0)
     set_tests_properties(rejects_bad_args_${name} PROPERTIES WILL_FAIL TRUE)
 endfunction()
