@@ -21,7 +21,8 @@
 
 **Статус:** этап 1 выполнен и перепроверен (`lab1_python/README.md`, раздел «Перепроверка»). Этап 2: программа,
 тесты, сверка с этапом 1, скрипты замеров и графиков готовы, есть предварительный прогон в контейнере; осталось —
-итоговые замеры на компьютере из отчёта и отчёт (`lab2_cpp/README.md`, раздел «Журнал»). Этапы 3–4 не начаты:
+итоговые замеры на компьютере из отчёта; черновик отчёта генерируется `lab2_cpp/report/make_report.py`
+(`lab2_cpp/README.md`, разделы «Черновик отчёта» и «Журнал»). Этапы 3–4 не начаты:
 в их папках только `README.md` (план с вариантами реализации, состав отчёта, журнал) и `THEORY.md`.
 **Не начинать реализацию следующего этапа, пока пользователь явно не попросит.**
 
@@ -57,7 +58,7 @@ uv run python lab1_python/cholesky_ref.py                # этап 1 с пар�
 uv run python lab1_python/cholesky_ref.py -n 10 100 1000 -b 8 -o <каталог>   # другие N и b
 uv run pytest                                            # автотесты (этап 1 и сверка этапа 2 с этапом 1)
 cmake -S lab2_cpp -B lab2_cpp/build && cmake --build lab2_cpp/build && ctest --test-dir lab2_cpp/build   # этап 2
-uv run python lab2_cpp/bench.py && uv run python lab2_cpp/plot_speedup.py   # замеры и графики этапа 2
+uv run python lab2_cpp/run_all.py         # этап 2 целиком: сборка, тесты, сверка, замеры, графики, черновик отчёта
 ```
 Зависимости добавлять через `uv add` (не pip). Для C++ (этапы 2–4) — CMake, C++17; код должен собираться
 и в Windows (MSVC или MinGW; MPI — MS-MPI), и в Linux (GCC/Clang; Open MPI/MPICH).

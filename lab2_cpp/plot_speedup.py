@@ -37,19 +37,30 @@ class Measurements:
         with open(path, encoding="utf-8") as f:
             rows = list(csv.DictReader(f))
         self.time = {}  # (эксперимент, сборка, режим, N, b) → t_min
-        self.flags = {}
+        self.error = {}  # (эксперимент, сборка, режим, N, b) → max |L − L_точн|
+        self.flags, self.compiler = {}, {}
         for r in rows:
             b = int(r["b"]) if r["b"] else None
-            self.time[(r["experiment"], r["variant"], r["mode"], int(r["N"]), b)] = float(r["t_min"])
+            key = (r["experiment"], r["variant"], r["mode"], int(r["N"]), b)
+            self.time[key] = float(r["t_min"])
+            self.error[key] = float(r["err_L"])
             self.flags[r["variant"]] = r["flags"]
+            self.compiler[r["variant"]] = r["compiler"]
+        self.repeats = min(int(r["repeats"]) for r in rows)  # наименьшее число замеров на точку
         self.sizes = sorted({key[3] for key in self.time if key[0] == "sizes"})
         self.block = next(key[4] for key in self.time if key[0] == "sizes" and key[2] == "block")
         self.variants = [v for v in VARIANT_NAMES if v in self.flags]
 
-    def t(self, variant, mode, n, experiment="sizes", b=None):
+    def key(self, variant, mode, n, experiment="sizes", b=None):
         if mode == "block" and b is None:
             b = self.block
-        return self.time.get((experiment, variant, mode, n, b if mode == "block" else None))
+        return experiment, variant, mode, n, b if mode == "block" else None
+
+    def t(self, variant, mode, n, experiment="sizes", b=None):
+        return self.time.get(self.key(variant, mode, n, experiment, b))
+
+    def err(self, variant, mode, n, experiment="sizes", b=None):
+        return self.error.get(self.key(variant, mode, n, experiment, b))
 
     def label(self, variant):
         return f"{VARIANT_NAMES[variant]} ({self.flags[variant]})"
