@@ -28,6 +28,35 @@ def test_number_formatting():
     assert report.per_core_kb(None) is None
 
 
+def test_compiler_text():
+    assert report.compiler_text("MSVC 195136260") == "MSVC 19.51.36260"
+    assert report.compiler_text("MSVC 19.51.36260") == "MSVC 19.51.36260"
+    assert report.compiler_text("GCC 13.3.0") == "GCC 13.3.0"
+
+
+def test_times_phrase():
+    assert report.times_phrase(1.7) == "быстрее в 1,70 раза"
+    assert report.times_phrase(0.95) == "медленнее в 1,05 раза"
+
+
+def test_n_equals():
+    assert report.n_equals([2048]) == "$N = 2048$"
+    assert report.n_equals([1024, 2048]) == "$N = 1024$ и $N = 2048$"
+    assert report.n_equals([256, 1024, 2048]) == "$N = 256$, $N = 1024$ и $N = 2048$"
+
+
+def test_trend_text():
+    assert report.trend_text(4.33, 64, 7.08, 1536) == "растёт с 4,33 при $N = 64$ до 7,08 при $N = 1536$"
+    assert report.trend_text(4.26, 64, 3.89, 1536) == "почти не меняется: 4,26 при $N = 64$ и 3,89 при $N = 1536$"
+
+
+def test_power_of_two_dips():
+    sizes = [512, 768, 1024, 1536, 2048]
+    assert report.power_of_two_dips(sizes, [2.3, 2.3, 2.05, 2.2, 1.6]) == [1024, 2048]
+    assert report.power_of_two_dips(sizes, [6.3, 6.5, 6.5, 6.6, 6.4]) == []
+    assert report.power_of_two_dips([64, 96, 128], [1.0, 1.0, 0.5]) == [128]
+
+
 def test_unknown_placeholder_is_reported():
     with pytest.raises(SystemExit):
         report.substitute("текст <<нет_такого>>", {})

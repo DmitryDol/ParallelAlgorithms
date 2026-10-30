@@ -35,18 +35,21 @@ TABLE_WIDTH = 9638           # ширина таблиц (twips), как в от
 IMAGE_WIDTH_EMU = 5760000    # ширина рисунков — 16 см
 BULLET_NUM_ID = "33"         # маркированный список шаблона
 DECIMAL_ABSTRACT_NUM = "0"   # нумерованный список шаблона («1.», «2.»)
-VARIANT_NAMES = {
-    "noopt": "без флага",
-    "opt": "с флагом",
-    "opt_novec": "с флагом, без векторизации",
-    "opt_fastmath": "с флагом и -ffast-math",
-}
 VARIANT_PURPOSE = {
-    "noopt": "«без флага»: оптимизация выключена",
-    "opt": "«с флагом»: оптимизация и векторизация под процессор",
-    "opt_novec": "то же без автовекторизации — вклад векторизации",
-    "opt_fastmath": "то же с разрешением переставлять операции с плавающей точкой",
+    "gcc": {
+        "noopt": "«без флага»: оптимизация выключена",
+        "opt": "«с флагом»: оптимизация и векторизация под процессор",
+        "opt_novec": "то же без автовекторизации — вклад векторизации",
+        "opt_fastmath": "то же с разрешением переставлять операции с плавающей точкой",
+    },
+    "msvc": {
+        "noopt": "«без флага»: оптимизация выключена",
+        "opt": "«с флагом»: оптимизация по скорости, команды AVX2",
+        "opt_novec": "то же без AVX2 (только команды SSE2)",
+        "opt_fastmath": "то же с разрешением переставлять операции с плавающей точкой",
+    },
 }
+MACHINE_EPSILON = 2.220446049250313e-16
 
 
 # ---------------------------------------------------------------- числа
@@ -91,6 +94,49 @@ def trend(first, last):
     return "почти не меняется"
 
 
+def times_phrase(r):
+    """1,70 → «быстрее в 1,70 раза»; 0,95 → «медленнее в 1,05 раза»."""
+    return f"быстрее в {dec(r)} раза" if r >= 1 else f"медленнее в {dec(1 / r)} раза"
+
+
+def compiler_text(raw):
+    """«MSVC 195136260» (значение _MSC_FULL_VER) → «MSVC 19.51.36260»; остальное без изменений."""
+    found = re.fullmatch(r"MSVC (\d{9})", raw.strip())
+    if not found:
+        return raw
+    v = int(found.group(1))
+    return f"MSVC {v // 10**7}.{v // 10**5 % 100}.{v % 10**5}"
+
+
+def power_of_two_dips(sizes, values, threshold=0.95):
+    """N — степени двойки, при которых значение (например, производительность) больше чем на 5 % ниже,
+    чем у соседних N ряда: признак конфликтных промахов кэша."""
+    dips = []
+    for k, n in enumerate(sizes):
+        neighbours = [values[j] for j in (k - 1, k + 1) if 0 <= j < len(sizes)]
+        if n & (n - 1) == 0 and neighbours and values[k] < threshold * min(neighbours):
+            dips.append(n)
+    return dips
+
+
+def n_list(ns):
+    return ", ".join(map(str, ns))
+
+
+def n_equals(ns):
+    """[1024, 2048] → «$N = 1024$ и $N = 2048$» (перечисление вне формулы — без склеивания через запятую)."""
+    parts = [f"$N = {n}$" for n in ns]
+    return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " и " + parts[-1]
+
+
+def trend_text(first, n_first, last, n_last):
+    """«растёт с 4,33 при $N = 64$ до 7,08 при $N = 1536$» или «почти не меняется: … и …»."""
+    word = trend(first, last)
+    if word == "почти не меняется":
+        return f"{word}: {dec(first)} при $N = {n_first}$ и {dec(last)} при $N = {n_last}$"
+    return f"{word} с {dec(first)} при $N = {n_first}$ до {dec(last)} при $N = {n_last}$"
+
+
 # ---------------------------------------------------------------- данные
 def read_platform(path: Path) -> dict:
     """Строки «ключ: значение» из platform.txt до списка сборок."""
@@ -117,16 +163,18 @@ def hardware_rows(info, m):
             if key in info]
     rows += [[key, value] for key, value in info.items() if key.startswith("Кэш")]
     rows += [["Операционная система", info.get("ОС", "—")],
-             ["Компилятор", m.compiler.get("opt", "—")],
+             ["Компилятор", compiler_text(m.compiler.get("opt", "—"))],
              ["Язык", "C++ (стандарт C++17)"]]
     return rows
 
 
 def compute(m: Measurements, info: dict) -> tuple[dict, dict]:
     """Подстановки для шаблона и таблицы."""
-    sizes, b = m.sizes, m.block
+    sizes, b, family = m.sizes, m.block, m.family
     n0, n1 = sizes[0], sizes[-1]
     has = set(m.variants)
+    fast = m.flags["opt_fastmath"].split()[-1] if "opt_fastmath" in has else ("/fp:fast" if family == "msvc"
+                                                                             else "-ffast-math")
 
     def speedup(num_variant, num_mode, den_variant, den_mode):
         return {n: ratio(m.t(num_variant, num_mode, n), m.t(den_variant, den_mode, n)) for n in sizes}
@@ -138,13 +186,66 @@ def compute(m: Measurements, info: dict) -> tuple[dict, dict]:
     sa_p = speedup("noopt", "point", "opt", "point")
     sb_opt = speedup("opt", "point", "opt", "block")
     sb_noopt = speedup("noopt", "point", "noopt", "block")
+    perf_block = [gflops("opt", "block", n) for n in sizes]
+    dips = power_of_two_dips(sizes, perf_block)
+    regular = [n for n in sizes if n not in dips]
+    n_ref = regular[-1]  # наибольшая N без провала — для сравнений сборок
 
     v = {
-        "compiler": m.compiler.get("opt", "—"),
+        "compiler": compiler_text(m.compiler.get("opt", "—")),
         "repeats": str(m.repeats),
         "b": str(b),
-        "sizes": ", ".join(map(str, sizes)),
+        "sizes": n_list(sizes),
     }
+
+    # --- ключи компиляции (разные у MSVC и GCC/Clang)
+    if family == "msvc":
+        v["flags_explanation"] = (
+            "Ключ `/Od` отключает оптимизацию: каждая переменная хранится в памяти, и каждое обращение к ней — "
+            "отдельная команда загрузки или записи. Ключ `/O2` включает оптимизацию по скорости: распределение "
+            "переменных по регистрам, вынос инвариантов из циклов, встраивание функций и автоматическую векторизацию; "
+            "`/arch:AVX2` разрешает команды AVX2 (векторные регистры на 4 числа `double`), без него используются "
+            "команды SSE2 (2 числа). Скалярное произведение — это редукция: в режиме `/fp:precise` (по умолчанию) "
+            "компилятор сохраняет порядок сложений и поэтому его не векторизует; ключ `/fp:fast` разрешает "
+            "переставлять операции с плавающей точкой.")
+        v["vector_what"] = f"Вклад набора команд AVX2 и ключа {fast}"
+    else:
+        v["flags_explanation"] = (
+            "Ключ `-O0` отключает оптимизацию: каждая переменная хранится в памяти, и каждое обращение к ней — "
+            "отдельная команда загрузки или записи. Ключ `-O3` включает распределение переменных по регистрам, вынос "
+            "инвариантов из циклов, встраивание функций и автоматическую векторизацию; `-march=native` разрешает "
+            "использовать все расширения набора команд процессора (AVX2, FMA). Скалярное произведение — это редукция, "
+            "поэтому без разрешения переставлять сложения (`-ffast-math`) компилятор векторизует только умножения, "
+            "а сложения выполняет последовательно в исходном порядке.")
+        v["vector_what"] = f"Вклад векторизации и ключа {fast}"
+
+    # --- различия погрешности между сборками
+    exact = [var for var in ("noopt", "opt", "opt_novec") if var in has]
+    same = all(m.err(var, mode, n) == m.err("noopt", mode, n) for var in exact for mode in ("block", "point")
+               for n in sizes)
+    if same:
+        v["builds_difference"] = (
+            f"Сборки без ключа {fast} дают одинаковую погрешность до последнего разряда: компилятор не меняет порядок "
+            f"операций. Ключ {fast} меняет порядок суммирования, поэтому погрешность в этой сборке немного отличается.")
+    elif family == "gcc":
+        v["builds_difference"] = (
+            "Небольшие различия между сборками объясняются тем, что с ключом `-march=native` компилятор заменяет пары "
+            f"«умножение + сложение» командой FMA с одним округлением, а `{fast}` меняет порядок суммирования.")
+    else:
+        v["builds_difference"] = ("Небольшие различия между сборками объясняются разным порядком операций "
+                                  "с плавающей точкой.")
+
+    # --- выбор размера блока
+    sweep = {}
+    for (experiment, _, _, n, bb), t in m.time.items():
+        if experiment == "block_sweep":
+            sweep.setdefault(n, {})[bb] = t
+    auto = "подобран" in info.get("Размер блока", "")
+    v["block_choice"] = (f"Размер блока $b = {b}$ подобран автоматически: при нём среднее время разложения при "
+                         f"$N = {n_list(sorted(sweep))}$ наименьшее (рис. <<fig:time_vs_block.png>>)"
+                         if auto and sweep else
+                         f"Размер блока задан вручную: $b = {b}$; время при других $b$ показано на рисунке "
+                         "<<fig:time_vs_block.png>>")
 
     # --- корректность
     errors = [m.err(var, mode, n) for var in m.variants for mode in ("block", "point") for n in sizes]
@@ -154,19 +255,38 @@ def compute(m: Measurements, info: dict) -> tuple[dict, dict]:
         f"Во всём диапазоне $N = {n0} \\ldots {n1}$ погрешность блочного алгоритма в сборке с флагом составляет "
         f"от {sci(e0)} до {sci(e1)} и, как и на этапе 1, {growth} из-за накопления ошибок округления "
         f"в скалярных произведениях. Наибольшая погрешность среди всех сборок и режимов — {sci(max(errors))}, "
-        f"то есть не более {round(max(errors) / 2.220446049250313e-16)} машинных эпсилон, тогда как ошибка "
-        f"в программе дала бы погрешность порядка единицы. "
-        f"Ускорение во всех случаях получено без потери точности.")
+        f"то есть не более {round(max(errors) / MACHINE_EPSILON)} машинных эпсилон, тогда как ошибка "
+        f"в программе дала бы погрешность порядка единицы. Ускорение во всех случаях получено без потери точности.")
+
+    # --- провалы при N — степенях двойки
+    dips_text = ""
+    if dips:
+        worst = min(dips, key=lambda n: perf_block[sizes.index(n)] / perf_block[sizes.index(n) - 1])
+        k = sizes.index(worst)
+        point_drop = gflops("opt", "point", worst) / gflops("opt", "point", sizes[k - 1])
+        dips_text = (
+            f"При {n_equals(dips)} (степени двойки) производительность блочного алгоритма в сборке с флагом "
+            f"заметно ниже, чем при соседних $N$: например, {dec(perf_block[k])} GFLOP/s при $N = {worst}$ против "
+            f"{dec(perf_block[k - 1])} при $N = {sizes[k - 1]}$. Строка матрицы занимает $8N$ байт; при таких $N$ это "
+            "число кратно 4 КБ, и элементы одного столбца в соседних строках попадают в одно и то же множество "
+            "ассоциативного кэша L1 — строки блока вытесняют друг друга (конфликтные промахи). ")
+        dips_text += ("Точечный алгоритм читает строки последовательно и от этого почти не страдает."
+                      if point_drop > 0.95 else
+                      f"Точечный алгоритм страдает меньше: его производительность снижается в "
+                      f"{dec(1 / point_drop)} раза.")
 
     # --- вариант А
-    best_n = max(sizes, key=lambda n: sa_b[n])
-    text = (f"Для блочного алгоритма ускорение от флага компиляции {trend(sa_b[n0], sa_b[n1])} "
-            f"с {dec(sa_b[n0])} при $N = {n0}$ до {dec(sa_b[n1])} при $N = {n1}$ (наибольшее значение "
-            f"{dec(sa_b[best_n])} при $N = {best_n}$). ")
-    if sa_b[n1] > sa_b[n0] * 1.1 and sa_b[n1] >= 0.9 * sa_b[best_n]:
+    best_n = max(regular, key=lambda n: sa_b[n])
+    lo_a, hi_a = min(sa_b[n] for n in regular), max(sa_b[n] for n in regular)
+    text = (f"Для блочного алгоритма ускорение от флага компиляции {trend_text(sa_b[n0], n0, sa_b[n_ref], n_ref)} "
+            f"(наибольшее значение {dec(sa_b[best_n])} при $N = {best_n}$). ")
+    if sa_b[n_ref] > sa_b[n0] * 1.1 and sa_b[n_ref] >= 0.9 * sa_b[best_n]:
         text += ("При малых $N$ в оптимизированной программе заметна доля коротких циклов и неполных блоков, "
                  "а при больших $N$ основное время занимает умножение блоков, данные которых находятся в кэш-памяти, "
                  "поэтому ускорение выходит на плато. ")
+    if dips:
+        text += (f"При {n_equals(dips)} ускорение меньше ({'; '.join(dec(sa_b[n]) for n in dips)}) из-за "
+                 "конфликтных промахов кэша в оптимизированной программе (п. «Ускорение блочного алгоритма»). ")
     noopt_gflops = [gflops("noopt", "block", n) for n in sizes]
     text += (f"Программа без флага ограничена числом выполняемых команд: её производительность "
              f"({dec(min(noopt_gflops))}–{dec(max(noopt_gflops))} GFLOP/s) почти не зависит от $N$.\n\n")
@@ -176,84 +296,123 @@ def compute(m: Measurements, info: dict) -> tuple[dict, dict]:
                  "значительную часть времени ожидает данные из оперативной памяти — ключи компиляции не ускоряют "
                  "обращения к памяти.")
     else:
-        text += f"Для точечного алгоритма ускорение {trend(sa_p[n0], sa_p[n1])}: от {dec(sa_p[n0])} до {dec(sa_p[n1])}."
+        text += f"Для точечного алгоритма ускорение {trend_text(sa_p[n0], n0, sa_p[n1], n1)}."
     v["analysis_flags"] = text
 
     # --- вариант Б
-    cross = next((n for n in sizes if sb_opt[n] >= 1.0), None)
-    text = f"В сборке с флагом ускорение блочного алгоритма относительно точечного {trend(sb_opt[n0], sb_opt[n1])} " \
-           f"с {dec(sb_opt[n0])} при $N = {n0}$ до {dec(sb_opt[n1])} при $N = {n1}$. "
+    best_b_n = max(sizes, key=lambda n: sb_opt[n])
+    text = (f"В сборке с флагом ускорение блочного алгоритма относительно точечного "
+            f"{trend_text(sb_opt[n0], n0, sb_opt[best_b_n], best_b_n)}. ")
+    cross = next((n for n in regular if sb_opt[n] >= 1.0), None)
     if cross and cross != n0:
+        slower = [n for n in sizes if n > cross and sb_opt[n] < 1.0]
         text += (f"При $N < {cross}$ блочный алгоритм медленнее точечного: матрица целиком помещается в кэш, "
                  f"и блочность только добавляет накладные расходы (скалярные произведения длины $b = {b}$ вместо "
-                 f"длины до $N$). Начиная с $N = {cross}$ блочный алгоритм быстрее. ")
+                 f"длины до $N$). Начиная с $N = {cross}$ блочный алгоритм быстрее"
+                 + (f", кроме {n_equals(slower)}. " if slower else ". "))
+    elif not cross:
+        text += "Во всём диапазоне блочный алгоритм не быстрее точечного. "
     l2 = per_core_kb(info.get("Кэш L2"))
-    if l2:
+    if l2 and cross:
         n_l2 = int(math.sqrt(l2 * 1024 / 4))
         text += (f"Выигрыш растёт по мере того, как данные перестают помещаться в кэш-память: нижний треугольник "
                  f"матрицы (около $4N^2$ байт) не помещается в кэш L2 ({kb_text(l2)} на ядро) начиная с "
                  f"$N \\approx {n_l2}$. Точечный алгоритм при этом всё больше ожидает данные из оперативной памяти, "
                  f"а блочный продолжает работать с блоками $b \\times b$, находящимися в кэше. ")
+    if dips_text:
+        text += "\n\n" + dips_text
+    if "opt_fastmath" in has:
+        sb_fast = speedup("opt_fastmath", "point", "opt_fastmath", "block")
+        if max(sb_fast.values()) < 1.0:
+            text += (f"\n\nС ключом {fast} блочный алгоритм медленнее точечного при всех $N$ "
+                     f"($S_Б = {dec_tex(min(sb_fast.values()))} \\ldots {dec_tex(max(sb_fast.values()))}$): "
+                     f"векторизованное скалярное произведение тем эффективнее, чем длиннее векторы, а у блочного "
+                     f"алгоритма их длина равна $b = {b}$, у точечного — до $N$.")
     lo, hi = min(sb_noopt.values()), max(sb_noopt.values())
-    text += (f"\n\nВ сборке без флага $S_Б = {dec_tex(lo)} \\ldots {dec_tex(hi)}$: неоптимизированная программа ограничена "
-             "числом выполняемых команд, а не обменом с памятью, поэтому уменьшение числа обращений к памяти за счёт "
-             "блочности не даёт выигрыша. Таким образом, эффект блочного алгоритма проявляется только вместе "
-             "с оптимизацией.")
+    text += (f"\n\nВ сборке без флага $S_Б = {dec_tex(lo)} \\ldots {dec_tex(hi)}$: неоптимизированная программа "
+             "ограничена числом выполняемых команд, а не обменом с памятью, поэтому уменьшение числа обращений "
+             "к памяти за счёт блочности не даёт выигрыша. Таким образом, эффект блочного алгоритма проявляется "
+             "только вместе с оптимизацией.")
     v["analysis_block"] = text
 
     # --- векторизация и размер блока
     text = ""
     if "opt_novec" in has:
-        text += (f"Без автоматической векторизации блочный алгоритм при $N = {n1}$ медленнее в "
-                 f"{dec(ratio(m.t('opt_novec', 'block', n1), m.t('opt', 'block', n1)))} раза, точечный — в "
-                 f"{dec(ratio(m.t('opt_novec', 'point', n1), m.t('opt', 'point', n1)))} раза. ")
+        r_b = ratio(m.t("opt_novec", "block", n_ref), m.t("opt", "block", n_ref))
+        r_p = ratio(m.t("opt_novec", "point", n_ref), m.t("opt", "point", n_ref))
+        if family == "msvc":
+            text += (f"Сборка с `/arch:AVX2` по сравнению со сборкой без него ($N = {n_ref}$): блочный алгоритм "
+                     f"{times_phrase(r_b)}, точечный — {times_phrase(r_p)}. ")
+            if max(r_b, r_p, 1 / r_b, 1 / r_p) < 1.1:
+                text += ("Без ключа `/fp:fast` скалярное произведение не векторизуется, поэтому более широкие "
+                         "векторные регистры AVX2 почти не влияют на время. ")
+        else:
+            text += (f"Векторизация (сравнение со сборкой без неё, $N = {n_ref}$): блочный алгоритм "
+                     f"{times_phrase(r_b)}, точечный — {times_phrase(r_p)}. Без `{fast}` векторизуются только "
+                     "умножения, а сложения остаются последовательными. ")
     if "opt_fastmath" in has:
-        text += (f"Разрешение переставлять сложения (`-ffast-math`) ускоряет их ещё в "
-                 f"{dec(ratio(m.t('opt', 'block', n1), m.t('opt_fastmath', 'block', n1)))} и "
-                 f"{dec(ratio(m.t('opt', 'point', n1), m.t('opt_fastmath', 'point', n1)))} раза: только с ним "
-                 "скалярное произведение векторизуется полностью (частичные суммы в векторном регистре), "
-                 "при этом результат меняется в последних разрядах. ")
-    sweep = {}
-    for (experiment, _, _, n, bb), t in m.time.items():
-        if experiment == "block_sweep":
-            sweep.setdefault(n, {})[bb] = t
-    if sweep:
-        best = {n: min(sweep[n], key=sweep[n].get) for n in sorted(sweep)}
-        text += ("Наименьшее время разложения получено при "
-                 + ", ".join(f"$b = {bb}$ ($N = {n}$)" for n, bb in best.items()) + ". ")
-        if any(bb != b for bb in best.values()) and all(b in sweep[n] for n in sweep):
-            excess = max(sweep[n][b] / sweep[n][best[n]] - 1 for n in sweep)
-            text += (f"Минимум пологий: при выбранном $b = {b}$ время больше наименьшего не более чем на "
+        f_b = ratio(m.t("opt", "block", n_ref), m.t("opt_fastmath", "block", n_ref))
+        f_p = ratio(m.t("opt", "point", n_ref), m.t("opt_fastmath", "point", n_ref))
+        text += (f"С ключом `{fast}`, разрешающим переставлять сложения, блочный алгоритм {times_phrase(f_b)}, "
+                 f"точечный — {times_phrase(f_p)}: только с ним скалярное произведение векторизуется полностью "
+                 "(частичные суммы в векторном регистре), при этом результат меняется в последних разрядах. ")
+    if sweep and all(b in times for times in sweep.values()):
+        best = {n: min(times, key=times.get) for n, times in sorted(sweep.items())}
+        excess = max(sweep[n][b] / sweep[n][best[n]] - 1 for n in sweep)
+        if len(set(best.values())) == 1:
+            text += (f"Наименьшее время разложения при всех $N$ подбора получено при $b = {next(iter(best.values()))}$"
+                     + (" — он и используется. " if excess == 0 else ". "))
+        else:
+            text += ("Наименьшее время разложения при подборе получено при "
+                     + ", ".join(f"$b = {bb}$ ($N = {n}$)" for n, bb in best.items()) + ". ")
+        if excess == 0:
+            pass
+        elif excess <= 0.05:
+            text += (f"Минимум пологий: при $b = {b}$ время больше наименьшего не более чем на "
                      f"{dec(100 * excess, 1)} %. ")
-        l1 = per_core_kb(info.get("Кэш L1 данных") or info.get("Кэш L1 (данные и команды)"))
-        kb = 3 * 8 * b * b / 1024
-        text += f"Три блока ${b} \\times {b}$, участвующие в модификации, занимают {dec(kb, 0)} КБ"
-        text += f" и помещаются в кэш L1 ({dec(l1, 0)} КБ на ядро)." if l1 and kb <= l1 else "."
+        elif auto:
+            text += (f"Выбран $b = {b}$ — с наименьшим средним временем по всем $N$ подбора (при отдельных $N$ "
+                     f"проигрыш до {dec(100 * excess, 1)} %). ")
+        else:
+            text += (f"Выбранный $b = {b}$ на этом компьютере не оптимален: время больше наименьшего на "
+                     f"{dec(100 * excess, 1)} %. ")
+    l1 = per_core_kb(info.get("Кэш L1 данных") or info.get("Кэш L1 (данные и команды)"))
+    kb = 3 * 8 * b * b / 1024
+    text += f"Три блока ${b} \\times {b}$, участвующие в модификации, занимают {dec(kb, 0)} КБ"
+    text += f" и помещаются в кэш L1 ({dec(l1, 0)} КБ на ядро)." if l1 and kb <= l1 else "."
     v["analysis_vector"] = text
 
     # --- выводы
-    v["analysis_conclusions"] = "\n".join([
-        f"1. Программа на C++ воспроизводит результаты этапа 1: фактор $L$ совпадает с эталонным с точностью "
+    lo_p, hi_p = min(sa_p.values()), max(sa_p.values())
+    conclusions = [
+        f"Программа на C++ воспроизводит результаты этапа 1: фактор $L$ совпадает с эталонным с точностью "
         f"$10^{{-13}}$, погрешность того же порядка ({sci(e1)} при $N = {n1}$).",
-        f"2. Флаг компиляции ускоряет блочный алгоритм в {dec(sa_b[n1])} раза при $N = {n1}$; для точечного "
-        f"алгоритма ускорение при больших $N$ составляет {dec(sa_p[n1])}.",
-        f"3. Блочный алгоритм в сборке с флагом быстрее точечного в {dec(sb_opt[n1])} раза при $N = {n1}$; "
-        "выигрыш появляется, когда матрица перестаёт помещаться в кэш-память, и отсутствует в сборке без флага.",
-        f"4. Наибольшая производительность блочного алгоритма — "
-        f"{dec(max(gflops('opt', 'block', n) for n in sizes), 1)} GFLOP/s в сборке с флагом"
-        + (f" и {dec(max(gflops('opt_fastmath', 'block', n) for n in sizes), 1)} GFLOP/s с `-ffast-math`."
+        f"Флаг компиляции ускоряет блочный алгоритм в {dec(lo_a)}–{dec(hi_a)} раза"
+        + (f" (при {n_equals(dips)} меньше из-за конфликтных промахов кэша)" if dips else "")
+        + f", точечный — в {dec(lo_p)}–{dec(hi_p)} раза.",
+        (f"Блочный алгоритм в сборке с флагом быстрее точечного до {dec(sb_opt[best_b_n])} раза ($N = {best_b_n}$); "
+         "выигрыш появляется, когда матрица перестаёт помещаться в кэш-память, и отсутствует в сборке без флага."
+         if sb_opt[best_b_n] >= 1.05 else
+         "Блочный алгоритм в сборке с флагом не даёт заметного выигрыша относительно точечного."),
+        f"Наибольшая производительность блочного алгоритма — {dec(max(perf_block), 1)} GFLOP/s в сборке с флагом"
+        + (f" и {dec(max(gflops('opt_fastmath', 'block', n) for n in sizes), 1)} GFLOP/s с `{fast}`."
            if "opt_fastmath" in has else "."),
-    ])
+    ]
+    if dips:
+        conclusions.append("Размерности, равные степеням двойки, неудачны для блочного алгоритма из-за конфликтных "
+                           "промахов кэша; на практике строки дополняют несколькими элементами («набивка»).")
+    v["analysis_conclusions"] = "\n".join(f"{k}. {c}" for k, c in enumerate(conclusions, 1))
 
     # --- таблицы
+    purpose = VARIANT_PURPOSE[family]
     tables = {}
     tables["builds"] = (
         "Сборки программы", ["Программа", "Ключи компиляции", "Назначение"],
-        [[f"cholesky_{var}", m.flags[var], VARIANT_PURPOSE[var]] for var in m.variants],
+        [[f"cholesky_{var}", m.flags[var], purpose[var]] for var in m.variants],
         [3100, 3400, 3138], 99)
     tables["errors"] = (
         f"Погрешность блочного алгоритма ($b = {b}$) в разных сборках",
-        ["$N$", *(VARIANT_NAMES[var] for var in m.variants)],
+        ["$N$", *(m.name(var) for var in m.variants)],
         [[str(n), *(sci(m.err(var, "block", n)) for var in m.variants)] for n in sizes],
         [1200, *([(TABLE_WIDTH - 1200) // len(m.variants)] * len(m.variants))], 0)
     tables["flags"] = (
@@ -321,7 +480,8 @@ def parse_blocks(text: str) -> list:
 
 
 def substitute(text: str, values: dict) -> str:
-    """<<имя>> → значение; <<fig:файл>> и <<tab:имя>> → номер рисунка/таблицы по порядку появления."""
+    """<<имя>> → значение; <<fig:файл>> и <<tab:имя>> → номер рисунка/таблицы по порядку появления.
+    Два прохода: в сгенерированных значениях тоже могут быть ссылки на рисунки и таблицы."""
     numbers, figures, tables = {}, 0, 0
     for line in text.splitlines():
         if line.startswith("!figure "):
@@ -331,10 +491,12 @@ def substitute(text: str, values: dict) -> str:
             tables += 1
             numbers["tab:" + line.split()[1]] = str(tables)
     values = {**values, **numbers}
-    missing = sorted(set(re.findall(r"<<([^<>]+)>>", text)) - set(values))
-    if missing:
-        sys.exit(f"В шаблоне неизвестные подстановки: {', '.join(missing)}")
-    return re.sub(r"<<([^<>]+)>>", lambda mt: values[mt.group(1)], text)
+    for _ in range(2):
+        missing = sorted(set(re.findall(r"<<([^<>]+)>>", text)) - set(values))
+        if missing:
+            sys.exit(f"В шаблоне неизвестные подстановки: {', '.join(missing)}")
+        text = re.sub(r"<<([^<>]+)>>", lambda mt: values[mt.group(1)], text)
+    return text
 
 
 # ---------------------------------------------------------------- формулы
