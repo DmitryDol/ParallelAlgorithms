@@ -1,111 +1,111 @@
 experiment,variant,flags,compiler,mode,N,b,repeats,batch,t_min,t_median,gflops,err_L
-sizes,noopt,-O0,GCC 13.3.0,point,64,,23,501,8.654559e-05,8.810960e-05,1.0097,4.440892e-16
-sizes,noopt,-O0,GCC 13.3.0,block,64,32,22,456,9.707616e-05,9.875311e-05,0.9001,4.440892e-16
-sizes,noopt,-O0,GCC 13.3.0,point,96,,19,180,2.838677e-04,2.884552e-04,1.0389,1.332268e-15
-sizes,noopt,-O0,GCC 13.3.0,block,96,32,20,158,3.152536e-04,3.211417e-04,0.9355,5.551115e-16
-sizes,noopt,-O0,GCC 13.3.0,point,128,,22,67,6.807047e-04,6.882747e-04,1.0270,1.332268e-15
-sizes,noopt,-O0,GCC 13.3.0,block,128,32,20,66,7.396022e-04,7.495870e-04,0.9452,8.881784e-16
-sizes,noopt,-O0,GCC 13.3.0,point,192,,21,20,2.378475e-03,2.401716e-03,0.9919,2.220446e-15
-sizes,noopt,-O0,GCC 13.3.0,block,192,32,21,20,2.433312e-03,2.481910e-03,0.9696,1.387779e-15
-sizes,noopt,-O0,GCC 13.3.0,point,256,,19,9,5.632979e-03,5.717134e-03,0.9928,2.220446e-15
-sizes,noopt,-O0,GCC 13.3.0,block,256,32,19,9,5.792273e-03,5.860002e-03,0.9655,2.720046e-15
-sizes,noopt,-O0,GCC 13.3.0,point,384,,17,3,1.925231e-02,1.960887e-02,0.9804,2.220446e-15
-sizes,noopt,-O0,GCC 13.3.0,block,384,32,17,3,1.925391e-02,1.961394e-02,0.9803,3.219647e-15
-sizes,noopt,-O0,GCC 13.3.0,point,512,,11,2,4.658968e-02,4.680475e-02,0.9603,2.220446e-15
-sizes,noopt,-O0,GCC 13.3.0,block,512,32,10,2,4.656567e-02,4.685259e-02,0.9608,3.219647e-15
-sizes,noopt,-O0,GCC 13.3.0,point,768,,6,1,1.627454e-01,1.661975e-01,0.9278,1.065814e-14
-sizes,noopt,-O0,GCC 13.3.0,block,768,32,7,1,1.568895e-01,1.571821e-01,0.9624,6.106227e-15
-sizes,noopt,-O0,GCC 13.3.0,point,1024,,3,1,3.852823e-01,3.860937e-01,0.9290,1.065814e-14
-sizes,noopt,-O0,GCC 13.3.0,block,1024,32,3,1,3.719062e-01,3.747529e-01,0.9624,6.106227e-15
-sizes,noopt,-O0,GCC 13.3.0,point,1536,,3,1,1.315347e+00,1.321208e+00,0.9184,1.776357e-14
-sizes,noopt,-O0,GCC 13.3.0,block,1536,32,3,1,1.295489e+00,1.305935e+00,0.9324,1.643130e-14
-sizes,noopt,-O0,GCC 13.3.0,point,2048,,3,1,3.172601e+00,3.176437e+00,0.9025,1.776357e-14
-sizes,noopt,-O0,GCC 13.3.0,block,2048,32,3,1,3.056946e+00,3.067439e+00,0.9367,2.275957e-14
-sizes,opt,-O3 -march=native,GCC 13.3.0,point,64,,24,3264,1.224821e-05,1.280197e-05,7.1342,4.440892e-16
-sizes,opt,-O3 -march=native,GCC 13.3.0,block,64,32,25,1771,2.240245e-05,2.277622e-05,3.9005,4.440892e-16
-sizes,opt,-O3 -march=native,GCC 13.3.0,point,96,,21,1096,4.338709e-05,4.435594e-05,6.7972,1.332268e-15
-sizes,opt,-O3 -march=native,GCC 13.3.0,block,96,32,23,690,6.379353e-05,6.445681e-05,4.6229,5.551115e-16
-sizes,opt,-O3 -march=native,GCC 13.3.0,point,128,,21,449,1.052596e-04,1.073137e-04,6.6412,1.332268e-15
-sizes,opt,-O3 -march=native,GCC 13.3.0,block,128,32,20,365,1.355146e-04,1.365753e-04,5.1585,8.881784e-16
-sizes,opt,-O3 -march=native,GCC 13.3.0,point,192,,20,130,3.914559e-04,3.945140e-04,6.0270,2.220446e-15
-sizes,opt,-O3 -march=native,GCC 13.3.0,block,192,32,21,118,4.110273e-04,4.127827e-04,5.7400,1.387779e-15
-sizes,opt,-O3 -march=native,GCC 13.3.0,point,256,,20,50,9.799293e-04,9.940266e-04,5.7069,2.220446e-15
-sizes,opt,-O3 -march=native,GCC 13.3.0,block,256,32,20,54,9.291854e-04,9.326163e-04,6.0186,2.720046e-15
-sizes,opt,-O3 -march=native,GCC 13.3.0,point,384,,20,14,3.531920e-03,3.588927e-03,5.3439,2.220446e-15
-sizes,opt,-O3 -march=native,GCC 13.3.0,block,384,32,20,17,2.928435e-03,2.975393e-03,6.4452,3.219647e-15
-sizes,opt,-O3 -march=native,GCC 13.3.0,point,512,,18,6,9.283003e-03,9.560351e-03,4.8195,2.220446e-15
-sizes,opt,-O3 -march=native,GCC 13.3.0,block,512,32,18,8,6.964205e-03,7.155778e-03,6.4242,3.219647e-15
-sizes,opt,-O3 -march=native,GCC 13.3.0,point,768,,13,2,3.478225e-02,3.734767e-02,4.3411,1.065814e-14
-sizes,opt,-O3 -march=native,GCC 13.3.0,block,768,32,20,2,2.318194e-02,2.381047e-02,6.5135,6.106227e-15
-sizes,opt,-O3 -march=native,GCC 13.3.0,point,1024,,10,1,1.003451e-01,1.070250e-01,3.5668,1.065814e-14
-sizes,opt,-O3 -march=native,GCC 13.3.0,block,1024,32,18,1,5.544385e-02,5.593541e-02,6.4554,6.106227e-15
-sizes,opt,-O3 -march=native,GCC 13.3.0,point,1536,,3,1,3.636771e-01,3.671777e-01,3.3215,1.776357e-14
-sizes,opt,-O3 -march=native,GCC 13.3.0,block,1536,32,6,1,1.830045e-01,1.836794e-01,6.6007,1.643130e-14
-sizes,opt,-O3 -march=native,GCC 13.3.0,point,2048,,3,1,8.673608e-01,8.779004e-01,3.3012,1.776357e-14
-sizes,opt,-O3 -march=native,GCC 13.3.0,block,2048,32,3,1,4.454567e-01,4.458777e-01,6.4278,2.275957e-14
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,point,64,,22,2666,1.731452e-05,1.770132e-05,5.0467,4.440892e-16
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,block,64,32,22,2375,1.866315e-05,1.939355e-05,4.6820,4.440892e-16
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,point,96,,20,714,6.465507e-05,6.909894e-05,4.5613,1.332268e-15
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,block,96,32,21,828,5.820907e-05,5.887218e-05,5.0664,5.551115e-16
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,point,128,,20,291,1.737010e-04,1.747109e-04,4.0244,1.332268e-15
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,block,128,32,21,340,1.335147e-04,1.349682e-04,5.2358,8.881784e-16
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,point,192,,19,76,6.630420e-04,7.059834e-04,3.5583,2.220446e-15
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,block,192,32,20,110,4.571514e-04,4.584241e-04,5.1609,1.387779e-15
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,point,256,,21,28,1.709385e-03,1.725479e-03,3.2716,2.220446e-15
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,block,256,32,20,45,1.076588e-03,1.086492e-03,5.1946,2.720046e-15
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,point,384,,19,8,6.476051e-03,6.563537e-03,2.9145,2.220446e-15
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,block,384,32,19,15,3.418218e-03,3.606707e-03,5.5217,3.219647e-15
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,point,512,,19,3,1.766072e-02,1.807154e-02,2.5333,2.220446e-15
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,block,512,32,18,6,8.987619e-03,9.169209e-03,4.9779,3.219647e-15
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,point,768,,15,1,6.598596e-02,6.746789e-02,2.2883,1.065814e-14
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,block,768,32,16,2,3.053537e-02,3.112063e-02,4.9449,6.106227e-15
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,point,1024,,6,1,1.683959e-01,1.700851e-01,2.1254,1.065814e-14
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,block,1024,32,14,1,7.184241e-02,7.328394e-02,4.9819,6.106227e-15
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,point,1536,,3,1,5.981041e-01,6.016667e-01,2.0196,1.776357e-14
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,block,1536,32,5,1,2.469498e-01,2.483889e-01,4.8915,1.643130e-14
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,point,2048,,3,1,1.467497e+00,1.473477e+00,1.9512,1.776357e-14
-sizes,opt_novec,-O3 -march=native -fno-tree-vectorize,GCC 13.3.0,block,2048,32,3,1,5.991950e-01,6.027365e-01,4.7786,2.275957e-14
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,point,64,,28,4293,7.725825e-06,7.821560e-06,11.3103,6.106227e-16
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,block,64,32,22,2259,2.007862e-05,2.057462e-05,4.3520,4.440892e-16
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,point,96,,25,1699,2.392914e-05,2.410614e-05,12.3244,6.106227e-16
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,block,96,32,22,900,5.223777e-05,5.233215e-05,5.6456,6.106227e-16
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,point,128,,23,780,5.720072e-05,5.781133e-05,12.2210,1.443290e-15
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,block,128,32,20,494,1.025090e-04,1.030137e-04,6.8194,6.106227e-16
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,point,192,,21,261,1.886872e-04,1.900567e-04,12.5037,2.775558e-15
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,block,192,32,21,167,2.776251e-04,2.801386e-04,8.4981,2.109424e-15
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,point,256,,21,110,4.459291e-04,4.498479e-04,12.5410,2.775558e-15
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,block,256,32,20,76,6.548652e-04,6.589370e-04,8.5398,2.275957e-15
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,point,384,,21,31,1.460417e-03,1.484266e-03,12.9240,4.440892e-15
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,block,384,32,20,30,1.687503e-03,1.699960e-03,11.1848,2.775558e-15
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,point,512,,21,11,4.203301e-03,4.335188e-03,10.6438,4.440892e-15
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,block,512,32,19,11,4.647672e-03,4.725962e-03,9.6262,3.774758e-15
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,point,768,,16,4,1.408645e-02,1.435677e-02,10.7192,1.121325e-14
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,block,768,32,18,4,1.424696e-02,1.436014e-02,10.5984,5.329071e-15
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,point,1024,,10,2,4.678257e-02,4.787831e-02,7.6506,1.121325e-14
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,block,1024,32,13,2,3.461844e-02,3.498084e-02,10.3388,8.992806e-15
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,point,1536,,6,1,1.893758e-01,1.922948e-01,6.3786,2.253753e-14
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,block,1536,32,9,1,1.123769e-01,1.126361e-01,10.7492,1.254552e-14
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,point,2048,,3,1,4.489175e-01,4.508718e-01,6.3783,2.253753e-14
-sizes,opt_fastmath,-O3 -march=native -ffast-math,GCC 13.3.0,block,2048,32,4,1,2.792120e-01,2.973589e-01,10.2550,3.008704e-14
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,1024,4,12,1,8.222926e-02,8.420233e-02,4.3526,1.065814e-14
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,2048,4,3,1,6.925176e-01,6.942989e-01,4.1346,4.085621e-14
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,1024,8,16,1,5.700462e-02,6.042316e-02,6.2787,1.693090e-14
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,2048,8,3,1,4.482412e-01,4.652371e-01,6.3879,2.042810e-14
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,1024,16,16,1,6.148764e-02,6.271695e-02,5.8209,1.126876e-14
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,2048,16,3,1,4.784117e-01,4.801846e-01,5.9850,1.942890e-14
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,1024,24,18,1,5.639347e-02,5.676530e-02,6.3467,1.060263e-14
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,2048,24,3,1,4.475601e-01,4.475978e-01,6.3976,2.053913e-14
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,1024,32,18,1,5.521278e-02,5.577754e-02,6.4824,6.106227e-15
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,2048,32,3,1,4.566683e-01,4.657444e-01,6.2700,2.275957e-14
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,1024,48,17,1,5.437978e-02,5.554450e-02,6.5817,8.160139e-15
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,2048,48,3,1,4.703196e-01,4.711253e-01,6.0880,1.859624e-14
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,1024,64,18,1,5.693031e-02,5.778897e-02,6.2869,8.160139e-15
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,2048,64,3,1,4.826489e-01,4.900015e-01,5.9325,1.065814e-14
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,1024,96,17,1,6.087125e-02,6.206759e-02,5.8799,1.071365e-14
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,2048,96,3,1,5.170669e-01,5.339415e-01,5.5376,1.809664e-14
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,1024,128,16,1,6.410084e-02,6.487421e-02,5.5836,4.440892e-15
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,2048,128,3,1,5.433591e-01,5.624582e-01,5.2696,1.287859e-14
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,1024,192,15,1,6.795546e-02,6.911450e-02,5.2669,4.940492e-15
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,2048,192,3,1,5.732083e-01,5.803108e-01,4.9952,1.065814e-14
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,1024,256,14,1,7.269639e-02,7.397825e-02,4.9234,4.107825e-15
-block_sweep,opt,-O3 -march=native,GCC 13.3.0,block,2048,256,3,1,6.034477e-01,6.076509e-01,4.7449,1.731948e-14
+sizes,noopt,/Od,MSVC 195136260,point,64,,21,304,1.619444e-04,1.624888e-04,0.5396,4.440892e-16
+sizes,noopt,/Od,MSVC 195136260,block,64,32,21,283,1.748417e-04,1.754081e-04,0.4998,4.440892e-16
+sizes,noopt,/Od,MSVC 195136260,point,96,,21,96,5.176823e-04,5.186802e-04,0.5697,1.332268e-15
+sizes,noopt,/Od,MSVC 195136260,block,96,32,20,90,5.582011e-04,5.590272e-04,0.5283,5.551115e-16
+sizes,noopt,/Od,MSVC 195136260,point,128,,21,41,1.202371e-03,1.205646e-03,0.5814,1.332268e-15
+sizes,noopt,/Od,MSVC 195136260,block,128,32,21,38,1.294100e-03,1.299087e-03,0.5402,8.881784e-16
+sizes,noopt,/Od,MSVC 195136260,point,192,,20,13,4.006592e-03,4.016281e-03,0.5889,2.220446e-15
+sizes,noopt,/Od,MSVC 195136260,block,192,32,20,12,4.212942e-03,4.222346e-03,0.5600,1.387779e-15
+sizes,noopt,/Od,MSVC 195136260,point,256,,18,6,9.588833e-03,9.609583e-03,0.5832,2.220446e-15
+sizes,noopt,/Od,MSVC 195136260,block,256,32,20,5,1.004902e-02,1.008120e-02,0.5565,2.720046e-15
+sizes,noopt,/Od,MSVC 195136260,point,384,,15,2,3.182395e-02,3.229485e-02,0.5931,2.220446e-15
+sizes,noopt,/Od,MSVC 195136260,block,384,32,15,2,3.318710e-02,3.332815e-02,0.5687,3.219647e-15
+sizes,noopt,/Od,MSVC 195136260,point,512,,14,1,7.464660e-02,7.511555e-02,0.5993,2.220446e-15
+sizes,noopt,/Od,MSVC 195136260,block,512,32,13,1,7.886100e-02,7.901660e-02,0.5673,3.219647e-15
+sizes,noopt,/Od,MSVC 195136260,point,768,,4,1,2.509398e-01,2.517837e-01,0.6017,1.065814e-14
+sizes,noopt,/Od,MSVC 195136260,block,768,32,4,1,2.636228e-01,2.645614e-01,0.5728,6.106227e-15
+sizes,noopt,/Od,MSVC 195136260,point,1024,,3,1,5.885400e-01,5.888791e-01,0.6081,1.065814e-14
+sizes,noopt,/Od,MSVC 195136260,block,1024,32,3,1,6.411741e-01,6.412784e-01,0.5582,6.106227e-15
+sizes,noopt,/Od,MSVC 195136260,point,1536,,3,1,1.971255e+00,1.985251e+00,0.6128,1.776357e-14
+sizes,noopt,/Od,MSVC 195136260,block,1536,32,3,1,2.108698e+00,2.111404e+00,0.5728,1.643130e-14
+sizes,noopt,/Od,MSVC 195136260,point,2048,,3,1,4.735999e+00,4.737538e+00,0.6046,1.776357e-14
+sizes,noopt,/Od,MSVC 195136260,block,2048,32,3,1,5.758062e+00,5.760718e+00,0.4973,2.275957e-14
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,point,64,,22,1241,3.739662e-05,3.766374e-05,2.3366,4.440892e-16
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,block,64,32,23,1097,4.100219e-05,4.114111e-05,2.1311,4.440892e-16
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,point,96,,21,382,1.289120e-04,1.293223e-04,2.2877,1.332268e-15
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,block,96,32,22,358,1.323927e-04,1.328029e-04,2.2276,5.551115e-16
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,point,128,,20,159,3.157333e-04,3.171899e-04,2.2141,1.332268e-15
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,block,128,32,20,163,3.068123e-04,3.078399e-04,2.2784,8.881784e-16
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,point,192,,20,45,1.115722e-03,1.122438e-03,2.1146,2.220446e-15
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,block,192,32,21,49,1.011961e-03,1.015794e-03,2.3314,1.387779e-15
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,point,256,,20,17,2.927994e-03,2.938926e-03,1.9100,2.220446e-15
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,block,256,32,20,20,2.474675e-03,2.491917e-03,2.2599,2.720046e-15
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,point,384,,20,5,1.010132e-02,1.018786e-02,1.8685,2.220446e-15
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,block,384,32,18,7,8.029986e-03,8.109821e-03,2.3505,3.219647e-15
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,point,512,,14,3,2.453587e-02,2.487130e-02,1.8234,2.220446e-15
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,block,512,32,17,3,1.982307e-02,1.990773e-02,2.2569,3.219647e-15
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,point,768,,12,1,8.618330e-02,8.668745e-02,1.7520,1.065814e-14
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,block,768,32,16,1,6.605940e-02,6.627060e-02,2.2857,6.106227e-15
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,point,1024,,5,1,2.045002e-01,2.049539e-01,1.7502,1.065814e-14
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,block,1024,32,6,1,1.742151e-01,1.745550e-01,2.0544,6.106227e-15
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,point,1536,,3,1,6.796386e-01,6.834281e-01,1.7774,1.776357e-14
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,block,1536,32,3,1,5.416927e-01,5.427023e-01,2.2300,1.643130e-14
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,point,2048,,3,1,1.711888e+00,1.745485e+00,1.6726,1.776357e-14
+sizes,opt,/O2 /arch:AVX2,MSVC 195136260,block,2048,32,3,1,1.778661e+00,1.779047e+00,1.6098,2.275957e-14
+sizes,opt_novec,/O2,MSVC 195136260,point,64,,22,1292,3.595325e-05,3.605387e-05,2.4304,4.440892e-16
+sizes,opt_novec,/O2,MSVC 195136260,block,64,32,22,1205,3.835552e-05,3.856697e-05,2.2782,4.440892e-16
+sizes,opt_novec,/O2,MSVC 195136260,point,96,,22,376,1.232162e-04,1.237207e-04,2.3935,1.332268e-15
+sizes,opt_novec,/O2,MSVC 195136260,block,96,32,21,399,1.231306e-04,1.238787e-04,2.3951,5.551115e-16
+sizes,opt_novec,/O2,MSVC 195136260,point,128,,20,166,3.038030e-04,3.057699e-04,2.3010,1.332268e-15
+sizes,opt_novec,/O2,MSVC 195136260,block,128,32,21,171,2.855988e-04,2.861053e-04,2.4477,8.881784e-16
+sizes,opt_novec,/O2,MSVC 195136260,point,192,,20,47,1.082338e-03,1.084979e-03,2.1798,2.220446e-15
+sizes,opt_novec,/O2,MSVC 195136260,block,192,32,20,55,9.343127e-04,9.363336e-04,2.5252,1.387779e-15
+sizes,opt_novec,/O2,MSVC 195136260,point,256,,20,18,2.826556e-03,2.838989e-03,1.9785,2.220446e-15
+sizes,opt_novec,/O2,MSVC 195136260,block,256,32,20,22,2.292559e-03,2.298357e-03,2.4394,2.720046e-15
+sizes,opt_novec,/O2,MSVC 195136260,point,384,,16,6,9.879717e-03,1.006210e-02,1.9104,2.220446e-15
+sizes,opt_novec,/O2,MSVC 195136260,block,384,32,19,7,7.497500e-03,7.595771e-03,2.5174,3.219647e-15
+sizes,opt_novec,/O2,MSVC 195136260,point,512,,20,2,2.415580e-02,2.455338e-02,1.8521,2.220446e-15
+sizes,opt_novec,/O2,MSVC 195136260,block,512,32,18,3,1.833527e-02,1.845960e-02,2.4401,3.219647e-15
+sizes,opt_novec,/O2,MSVC 195136260,point,768,,12,1,8.542300e-02,8.568815e-02,1.7676,1.065814e-14
+sizes,opt_novec,/O2,MSVC 195136260,block,768,32,17,1,6.123490e-02,6.142110e-02,2.4658,6.106227e-15
+sizes,opt_novec,/O2,MSVC 195136260,point,1024,,5,1,2.005222e-01,2.007030e-01,1.7849,1.065814e-14
+sizes,opt_novec,/O2,MSVC 195136260,block,1024,32,7,1,1.615752e-01,1.618496e-01,2.2152,6.106227e-15
+sizes,opt_novec,/O2,MSVC 195136260,point,1536,,3,1,6.720168e-01,6.735805e-01,1.7975,1.776357e-14
+sizes,opt_novec,/O2,MSVC 195136260,block,1536,32,3,1,4.976413e-01,4.989568e-01,2.4274,1.643130e-14
+sizes,opt_novec,/O2,MSVC 195136260,point,2048,,3,1,1.695032e+00,1.695587e+00,1.6892,1.776357e-14
+sizes,opt_novec,/O2,MSVC 195136260,block,2048,32,3,1,1.686498e+00,1.691828e+00,1.6978,2.275957e-14
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,point,64,,35,955,2.985812e-05,2.990419e-05,2.9266,7.771561e-16
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,block,64,32,23,1316,3.369445e-05,3.374384e-05,2.5933,7.771561e-16
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,point,96,,21,615,7.727577e-05,7.745350e-05,3.8164,1.443290e-15
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,block,96,32,21,519,9.133545e-05,9.150405e-05,3.2289,7.771561e-16
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,point,128,,21,296,1.631973e-04,1.635328e-04,4.2835,1.443290e-15
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,block,128,32,21,254,1.933965e-04,1.937043e-04,3.6146,7.771561e-16
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,point,192,,20,102,4.934912e-04,4.942618e-04,4.7808,3.885781e-15
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,block,192,32,20,83,6.071735e-04,6.081428e-04,3.8857,1.443290e-15
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,point,256,,33,25,1.221748e-03,1.228208e-03,4.5774,3.885781e-15
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,block,256,32,20,37,1.387622e-03,1.391972e-03,4.0302,2.609024e-15
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,point,384,,20,13,3.866323e-03,3.877954e-03,4.8817,7.660539e-15
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,block,384,32,19,12,4.490700e-03,4.498975e-03,4.2030,3.330669e-15
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,point,512,,19,6,8.702450e-03,8.946633e-03,5.1410,7.660539e-15
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,block,512,32,19,5,1.082144e-02,1.088670e-02,4.1343,3.330669e-15
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,point,768,,16,2,3.042945e-02,3.083218e-02,4.9621,1.543210e-14
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,block,768,32,14,2,3.523045e-02,3.539077e-02,4.2859,4.996004e-15
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,point,1024,,15,1,6.880760e-02,6.949830e-02,5.2017,1.543210e-14
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,block,1024,32,10,1,1.029313e-01,1.031117e-01,3.4772,7.494005e-15
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,point,1536,,5,1,2.179348e-01,2.180373e-01,5.5428,3.075318e-14
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,block,1536,32,4,1,2.821319e-01,2.822015e-01,4.2815,2.636780e-14
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,point,2048,,3,1,5.731450e-01,5.953965e-01,4.9958,3.075318e-14
+sizes,opt_fastmath,/O2 /arch:AVX2 /fp:fast,MSVC 195136260,block,2048,32,3,1,1.043659e+00,1.048479e+00,2.7435,2.636780e-14
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,1024,4,5,1,2.176011e-01,2.180887e-01,1.6448,9.325873e-15
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,2048,4,3,1,1.830503e+00,1.830799e+00,1.5642,3.907985e-14
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,1024,8,6,1,1.881763e-01,1.911989e-01,1.9020,1.054712e-14
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,2048,8,3,1,1.544155e+00,1.553764e+00,1.8543,2.087219e-14
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,1024,16,7,1,1.599810e-01,1.600835e-01,2.2372,1.126876e-14
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,2048,16,3,1,1.606497e+00,1.613513e+00,1.7823,1.942890e-14
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,1024,24,7,1,1.509044e-01,1.517332e-01,2.3718,1.060263e-14
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,2048,24,3,1,1.757789e+00,1.773749e+00,1.6289,2.053913e-14
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,1024,32,6,1,1.757692e-01,1.772001e-01,2.0363,6.106227e-15
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,2048,32,3,1,1.782957e+00,1.784600e+00,1.6059,2.275957e-14
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,1024,48,5,1,2.028955e-01,2.073574e-01,1.7640,8.160139e-15
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,2048,48,3,1,1.659737e+00,1.659930e+00,1.7252,1.859624e-14
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,1024,64,5,1,1.998569e-01,2.000660e-01,1.7909,8.160139e-15
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,2048,64,3,1,1.592496e+00,1.594418e+00,1.7980,1.065814e-14
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,1024,96,6,1,1.966862e-01,1.967125e-01,1.8197,1.071365e-14
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,2048,96,3,1,1.559420e+00,1.563111e+00,1.8361,1.809664e-14
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,1024,128,6,1,1.944880e-01,1.948906e-01,1.8403,4.440892e-15
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,2048,128,3,1,1.555756e+00,1.555838e+00,1.8405,1.287859e-14
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,1024,192,6,1,1.979020e-01,1.983247e-01,1.8085,4.940492e-15
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,2048,192,3,1,1.592007e+00,1.598899e+00,1.7986,1.065814e-14
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,1024,256,6,1,1.972419e-01,1.974642e-01,1.8146,4.107825e-15
+block_sweep,opt,/O2 /arch:AVX2,MSVC 195136260,block,2048,256,3,1,1.579516e+00,1.580505e+00,1.8128,1.731948e-14

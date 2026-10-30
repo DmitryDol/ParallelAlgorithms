@@ -1,16 +1,15 @@
-Дата: 2026-10-29 00:02
-ОС: Linux-6.18.44-fc-v185-x86_64-with-glibc2.39
-Процессор: Intel(R) Xeon(R) Processor
-Физических ядер: 4
-Частота процессора: 2,70 ГГц
-Кэш L1 данных: 192 КБ (4 × 48 КБ)
-Кэш L2: 8 МБ (4 × 2 МБ)
-Кэш L3: 480 МБ
-Логических процессоров: 4
+Дата: 2026-10-30 03:52
+ОС: Windows-11-10.0.26200-SP0
+Процессор: Intel(R) Xeon(R) CPU E5-2678 v3 @ 2.50GHz
+Физических ядер: 12
+Частота процессора: 2,50 ГГц
+Кэш L2: 3 МБ (12 × 256 КБ)
+Кэш L3: 30 МБ
+Логических процессоров: 24
 Параметры: N = 64 96 128 192 256 384 512 768 1024 1536 2048; b = 32; подбор b: N = 1024 2048, b = 4 8 16 24 32 48 64 96 128 192 256; повторов = 3
 
 Сборки:
-  noopt: flags=-O0; compiler=GCC 13.3.0
-  opt: flags=-O3 -march=native; compiler=GCC 13.3.0
-  opt_novec: flags=-O3 -march=native -fno-tree-vectorize; compiler=GCC 13.3.0
-  opt_fastmath: flags=-O3 -march=native -ffast-math; compiler=GCC 13.3.0
+  noopt: flags=/Od; compiler=MSVC 195136260
+  opt: flags=/O2 /arch:AVX2; compiler=MSVC 195136260
+  opt_novec: flags=/O2; compiler=MSVC 195136260
+  opt_fastmath: flags=/O2 /arch:AVX2 /fp:fast; compiler=MSVC 195136260
