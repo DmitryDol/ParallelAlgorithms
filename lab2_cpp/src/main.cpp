@@ -35,7 +35,9 @@ std::string compiler() {
 #elif defined(__GNUC__)
     return std::string("GCC ") + __VERSION__;
 #elif defined(_MSC_VER)
-    return "MSVC " + std::to_string(_MSC_FULL_VER);
+    // _MSC_FULL_VER = 195136260 → «MSVC 19.51.36260»
+    return "MSVC " + std::to_string(_MSC_FULL_VER / 10000000) + "." + std::to_string(_MSC_FULL_VER / 100000 % 100) +
+           "." + std::to_string(_MSC_FULL_VER % 100000);
 #else
     return "unknown";
 #endif

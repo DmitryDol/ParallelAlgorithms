@@ -8,7 +8,8 @@
 Результаты (в results/):
   speedup_flags        — вариант А: без флага → с флагом (блочный и точечный алгоритмы);
   speedup_block        — вариант Б: точечный → блочный (для каждой сборки);
-  speedup_vectorization — вклад векторизации: без векторизации → с ней, с флагом → с -ffast-math;
+  speedup_vectorization — вклад векторизации (GCC: без неё → с ней; MSVC: без AVX2 → с AVX2) и ключа,
+                          разрешающего переставлять операции (-ffast-math или /fp:fast);
   time_vs_n, gflops_vs_n, time_vs_block — время, производительность и подбор размера блока.
 """
 
@@ -22,14 +23,25 @@ from matplotlib.ticker import NullFormatter
 
 from programs import RESULTS_DIR
 
-VARIANT_NAMES = {
-    "noopt": "без флага",
-    "opt": "с флагом",
-    "opt_novec": "с флагом, без векторизации",
-    "opt_fastmath": "с флагом и -ffast-math",
-}
+VARIANTS_ORDER = ["noopt", "opt", "opt_novec", "opt_fastmath"]
 MODE_NAMES = {"block": "блочный", "point": "точечный"}
 COLORS = {"noopt": "#d62728", "opt": "#1f77b4", "opt_novec": "#2ca02c", "opt_fastmath": "#9467bd"}
+
+
+def compiler_family(compiler: str) -> str:
+    """«msvc» для Visual Studio, «gcc» для GCC и Clang (у них одинаковые ключи)."""
+    return "msvc" if compiler.startswith("MSVC") else "gcc"
+
+
+def variant_name(variant: str, family: str, flags: str) -> str:
+    """Название сборки для подписей: одно место для графиков и отчёта."""
+    if variant == "noopt":
+        return "без флага"
+    if variant == "opt":
+        return "с флагом"
+    if variant == "opt_novec":
+        return "с флагом, без AVX2" if family == "msvc" else "с флагом, без векторизации"
+    return f"с флагом и {flags.split()[-1]}"  # opt_fastmath: -ffast-math или /fp:fast
 
 
 class Measurements:
@@ -49,7 +61,11 @@ class Measurements:
         self.repeats = min(int(r["repeats"]) for r in rows)  # наименьшее число замеров на точку
         self.sizes = sorted({key[3] for key in self.time if key[0] == "sizes"})
         self.block = next(key[4] for key in self.time if key[0] == "sizes" and key[2] == "block")
-        self.variants = [v for v in VARIANT_NAMES if v in self.flags]
+        self.variants = [v for v in VARIANTS_ORDER if v in self.flags]
+        self.family = compiler_family(self.compiler.get("opt", ""))
+
+    def name(self, variant):
+        return variant_name(variant, self.family, self.flags[variant])
 
     def key(self, variant, mode, n, experiment="sizes", b=None):
         if mode == "block" and b is None:
@@ -63,7 +79,7 @@ class Measurements:
         return self.error.get(self.key(variant, mode, n, experiment, b))
 
     def label(self, variant):
-        return f"{VARIANT_NAMES[variant]} ({self.flags[variant]})"
+        return f"{self.name(variant)} ({self.flags[variant]})"
 
 
 def ratio(numerator, denominator):
@@ -147,7 +163,8 @@ def main(argv=None):
     for mode in ("block", "point"):
         style = "o-" if mode == "block" else "s--"
         if "opt_novec" in m.variants:
-            vector_curves.append((f"{MODE_NAMES[mode]}: без векторизации → с ней", COLORS["opt_novec"], style,
+            what = "без AVX2 → с AVX2" if m.family == "msvc" else "без векторизации → с ней"
+            vector_curves.append((f"{MODE_NAMES[mode]}: {what}", COLORS["opt_novec"], style,
                                   lambda n, mode=mode: ratio(m.t("opt_novec", mode, n), m.t("opt", mode, n))))
         if "opt_fastmath" in m.variants:
             vector_curves.append((f"{MODE_NAMES[mode]}: с флагом → + {m.flags['opt_fastmath'].split()[-1]}",
@@ -167,7 +184,7 @@ def main(argv=None):
             for mode in ("block", "point"):
                 points = [(n, value(m.t(v, mode, n), n)) for n in m.sizes if m.t(v, mode, n)]
                 ax.plot(*zip(*points), "o-" if mode == "block" else "s--", color=COLORS[v], linewidth=2,
-                        markersize=6, label=f"{MODE_NAMES[mode]}, {VARIANT_NAMES[v]}")
+                        markersize=6, label=f"{MODE_NAMES[mode]}, {m.name(v)}")
         if name == "time_vs_n":
             ax.set_yscale("log")
             n0, t0 = m.sizes[-1], m.t("opt", "block", m.sizes[-1])
@@ -190,6 +207,7 @@ def main(argv=None):
             ax.plot(blocks, [sweep[n][b] for b in blocks], "o-", linewidth=2.5, markersize=8,
                     label=f"N = {n} (минимум при b = {best})")
             print(f"\nПодбор блока, N = {n}: лучший b = {best}, t = {sweep[n][best]:.4f} с")
+        ax.axvline(m.block, color="gray", linestyle="--", linewidth=1.5, label=f"используемый b = {m.block}")
         log2_ticks(ax, sorted({b for n in sweep for b in sweep[n]}))
         ax.set_ylim(bottom=0)
         save(fig, ax, out, "time_vs_block")
