@@ -52,7 +52,7 @@ def cmake_generator(build_dir: Path) -> str:
 
 def build_command(build_dir: Path = BUILD_DIR) -> list:
     """Полная пересборка: отчёт компилятора об автопараллелизации должен попасть в журнал. MSBuild (генератор
-    Visual Studio) распознаёт в выводе компилятора только error и warning, а строки /Qpar-report («info C5002»)
+    Visual Studio) распознаёт в выводе компилятора только error и warning, а строки /Qpar-report («info C5012»)
     пишет с низкой важностью — их нет ни на экране, ни с --verbose; поэтому — подробный журнал в файл."""
     command = ["cmake", "--build", str(build_dir), "--config", "Release", "--clean-first"]
     if cmake_generator(build_dir).startswith("Visual Studio"):

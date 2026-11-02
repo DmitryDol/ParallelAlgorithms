@@ -153,12 +153,17 @@ GCC_REASONS = {  # причины, по которым GCC не распарал
     "it is not a part of reduction.": "переменная, переходящая между итерациями, не является редукцией",
 }
 
-MSVC_REASONS = {  # коды причин C5002 /Qpar (документация MSVC «Vectorizer and parallelizer messages»)
-    "500": "у цикла несколько выходов или заголовок не заканчивается увеличением счётчика",
+MSVC_REASONS = {  # коды причин C5012 /Qpar (документация MSVC «Vectorizer and parallelizer messages»)
+    "500": "не удалось определить счётчик цикла или рекуррентность",
     "501": "счётчик цикла не локальный или верхняя граница меняется в цикле",
     "502": "счётчик цикла меняется не на +1",
     "503": "в цикле есть обработка исключений или switch",
     "504": "тело цикла может выбросить исключение, требующее уничтожения объекта C++",
+    "505": "у внешнего цикла счётчик с префиксным увеличением, анализ прекращён",
+    "506": "цикл не приводится к канонической форме",
+    "507": "несогласованы границы, начальное значение, условие окончания или сравнение",
+    "508": "не удалось определить или использовать шаг обращения к памяти",
+    "509": "недопустимое направление цикла",
     "1000": "в теле цикла есть зависимость по данным",
     "1001": "в цикле есть запись в скалярную переменную, которая используется после цикла",
     "1002": "внутренний цикл уже распараллелен",
@@ -175,7 +180,8 @@ MSVC_REASONS = {  # коды причин C5002 /Qpar (документация 
 
 def autopar_report(build_dir: Path) -> str:
     """Что распараллелил компилятор в вычислительном ядре (cholesky.cpp) — с текстом строк исходника, — и почему
-    не распараллелил остальное (GCC: дамп прохода parloops; MSVC: коды причин C5002)."""
+    не распараллелил остальное (GCC: дамп прохода parloops; MSVC: C5011 — распараллелен, C5012 — нет и код причины;
+    C5001/C5002 — сообщения векторизатора, к распараллеливанию не относятся)."""
     source = (HERE / "src" / "cholesky.cpp").read_text(encoding="utf-8").splitlines()
     gcc = build_dir / "autopar_report.txt"
     msvc_logs = [log for log in (build_dir / MSBUILD_LOG, build_dir / "build_log.txt") if log.exists()]
@@ -192,27 +198,27 @@ def autopar_report(build_dir: Path) -> str:
                     reasons[m.group(1).strip()] = reasons.get(m.group(1).strip(), 0) + 1
             break
     elif msvc_logs:
-        # «file.cpp(14) : info C5002: …» (cl) или «file.cpp(14,5): info C5002: … [проект.vcxproj]» (MSBuild);
+        # «file.cpp(14) : info C5012: …» (cl) или «file.cpp(14,5): info C5012: … [проект.vcxproj]» (MSBuild);
         # русская версия пишет свой текст и кавычки, поэтому код причины — последнее число в сообщении.
         for log in msvc_logs:
             for line in log.read_text(encoding="utf-8", errors="replace").splitlines():
-                m = re.search(r"cholesky\.cpp\((\d+)(?:,\d+)?\)\s*:[^:]*?\b(C500[12])\s*:\s*(.*)", line)
+                m = re.search(r"cholesky\.cpp\((\d+)(?:,\d+)?\)\s*:[^:]*?\b(C501[12])\s*:\s*(.*)", line)
                 if m:
                     message = re.sub(r"\s*\[[^\]]*\.vcxproj\]\s*$", "", m.group(3)).strip()
                     found.append((int(m.group(1)), f"{m.group(2)}: {message}"))
         for _, message in sorted(set(found)):  # MSBuild может повторить строку — каждый цикл считается один раз
-            code = re.search(r"(\d{3,4})\D*$", message) if message.startswith("C5002") else None
+            code = re.search(r"(\d{3,4})\D*$", message) if message.startswith("C5012") else None
             if code:
                 reason = (f"{MSVC_REASONS[code.group(1)]} (код {code.group(1)})" if code.group(1) in MSVC_REASONS
                           else f"код причины {code.group(1)}")
                 reasons[reason] = reasons.get(reason, 0) + 1
     if not found and not reasons:
         text = "Отчёт компилятора об автопараллелизации не найден (нужна сборка через run_all.py).\n"
-        evidence = list(dict.fromkeys(line.strip()[:300] for log in msvc_logs
+        evidence = list(dict.fromkeys(line.strip() for log in msvc_logs
                                       for line in log.read_text(encoding="utf-8", errors="replace").splitlines()
-                                      if "Qpar" in line or "C500" in line))[:10]
-        if evidence:  # что есть в журнале: ключи компиляции и строки с кодами C500x — чтобы найти причину
-            text += f"\nСтроки журналов сборки ({', '.join(log.name for log in msvc_logs)}) с «Qpar» или «C500»:\n"
+                                      if "Qpar" in line or re.search(r"\bC50\d\d\b", line)))[:20]
+        if evidence:  # что есть в журнале: команды компиляции целиком и строки с кодами C50xx — чтобы найти причину
+            text += f"\nСтроки журналов сборки ({', '.join(log.name for log in msvc_logs)}) с «Qpar» или «C50xx»:\n"
             text += "".join(f"  {line}\n" for line in evidence)
         return text
     lines = ["Автопараллелизация: циклы вычислительного ядра (cholesky.cpp), о которых сообщил компилятор", ""]

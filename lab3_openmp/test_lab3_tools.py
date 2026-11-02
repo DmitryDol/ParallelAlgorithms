@@ -56,27 +56,29 @@ def test_autopar_report_from_gcc(tmp_path):
 
 def test_autopar_report_from_msvc(tmp_path):
     (tmp_path / "build_log.txt").write_text(
-        r"C:\lab\src\cholesky.cpp(40) : info C5001: loop parallelized" + "\n"
-        r"C:\lab\src\cholesky.cpp(95) : info C5002: loop not parallelized due to reason '1000'" + "\n",
+        r"C:\lab\src\cholesky.cpp(40) : info C5011: loop parallelized" + "\n"
+        r"C:\lab\src\cholesky.cpp(95) : info C5012: loop not parallelized due to reason '1000'" + "\n"
+        r"C:\lab\src\cholesky.cpp(14) : info C5002: loop not vectorized due to reason '1105'" + "\n",
         encoding="utf-8")
     text = autopar_report(tmp_path)
-    assert "cholesky.cpp:40 (функция make_test_matrix): C5001: loop parallelized" in text
-    assert "C5002: loop not parallelized due to reason '1000'" in text
+    assert "cholesky.cpp:40 (функция make_test_matrix): C5011: loop parallelized" in text
+    assert "C5012: loop not parallelized due to reason '1000'" in text
+    assert "vectorized" not in text and "1105" not in text  # C5002 — сообщение векторизатора, не распараллеливателя
     assert "1 × в теле цикла есть зависимость по данным (код 1000)" in text
 
 
 def test_autopar_report_from_msbuild_log(tmp_path):
     # MSBuild: позиция «(строка,столбец)», в конце — проект; русская версия: свой текст и кавычки «"1000"»
     (tmp_path / "build_log.txt").write_text(
-        r"  C:\lab\src\cholesky.cpp(41,5): info C5001: loop parallelized [C:\lab\build\core_autopar.vcxproj]" + "\n"
-        r"  C:\lab\src\cholesky.cpp(14,5): info C5002: loop not parallelized due to reason '1000' "
+        r"  C:\lab\src\cholesky.cpp(41,5): info C5011: loop parallelized [C:\lab\build\core_autopar.vcxproj]" + "\n"
+        r"  C:\lab\src\cholesky.cpp(14,5): info C5012: loop not parallelized due to reason '1000' "
         r"[C:\lab\build\core_autopar.vcxproj]" + "\n"
-        r'  C:\lab\src\cholesky.cpp(99,13): info C5002: цикл не распараллелен по причине "1008" '
+        r'  C:\lab\src\cholesky.cpp(99,13): info C5012: цикл не распараллелен по причине "1008" '
         r"[C:\lab\build\core_autopar.vcxproj]" + "\n"
-        r"  C:\lab\src\main.cpp(80,5): info C5002: loop not parallelized due to reason '1000'" + "\n",
+        r"  C:\lab\src\main.cpp(80,5): info C5012: loop not parallelized due to reason '1000'" + "\n",
         encoding="utf-8")
     text = autopar_report(tmp_path)
-    assert "cholesky.cpp:41 (функция make_test_matrix): C5001: loop parallelized\n" in text
+    assert "cholesky.cpp:41 (функция make_test_matrix): C5011: loop parallelized\n" in text
     assert "vcxproj" not in text and "main.cpp" not in text
     assert "cholesky.cpp:14 (функция dot)" in text and "cholesky.cpp:99 (функция modify_block)" in text
     assert "1 × в теле цикла есть зависимость по данным (код 1000)" in text
@@ -85,7 +87,7 @@ def test_autopar_report_from_msbuild_log(tmp_path):
 
 def test_autopar_report_unknown_msvc_reason(tmp_path):
     (tmp_path / "build_log.txt").write_text(
-        r"C:\lab\src\cholesky.cpp(14) : info C5002: loop not parallelized due to reason '1234'" + "\n",
+        r"C:\lab\src\cholesky.cpp(14) : info C5012: loop not parallelized due to reason '1234'" + "\n",
         encoding="utf-8")
     assert "1 × код причины 1234" in autopar_report(tmp_path)
 
@@ -105,7 +107,7 @@ def test_static_schedule_model_bounds():
 
 
 def test_build_command_asks_msbuild_for_detailed_file_log(tmp_path):
-    # MSBuild пишет строки «info C5002» как обычный вывод с низкой важностью — их видно только в подробном журнале
+    # MSBuild пишет строки «info C5012» как обычный вывод с низкой важностью — их видно только в подробном журнале
     (tmp_path / "CMakeCache.txt").write_text("CMAKE_GENERATOR:INTERNAL=Visual Studio 17 2022\n", encoding="utf-8")
     command = build_command(tmp_path)
     assert command[:3] == ["cmake", "--build", str(tmp_path)]
@@ -117,19 +119,26 @@ def test_build_command_asks_msbuild_for_detailed_file_log(tmp_path):
 
 def test_autopar_report_from_msbuild_detailed_log(tmp_path):
     (tmp_path / MSBUILD_LOG).write_text(
-        "                     C:\\lab\\src\\cholesky.cpp(41,5): info C5001: loop parallelized\n", encoding="utf-8")
+        "                     C:\\lab\\src\\cholesky.cpp(41,5): info C5011: loop parallelized\n", encoding="utf-8")
     (tmp_path / "build_log.txt").write_text("  cholesky.cpp\n", encoding="utf-8")
-    assert "cholesky.cpp:41 (функция make_test_matrix): C5001: loop parallelized" in autopar_report(tmp_path)
+    assert "cholesky.cpp:41 (функция make_test_matrix): C5011: loop parallelized" in autopar_report(tmp_path)
 
 
 def test_autopar_report_missing_shows_what_the_log_has(tmp_path):
     (tmp_path / MSBUILD_LOG).write_text(
         "  Task \"CL\"\n"
         "    cl.exe /c /O2 /arch:AVX2 /Qpar /Qpar-report:2 C:\\lab\\src\\cholesky.cpp\n"
-        "    cholesky.cpp\n", encoding="utf-8")
+        "    cholesky.cpp\n"
+        "    C:\\lab\\src\\cli.cpp(30,5): info C5012: loop not parallelized due to reason '1008'\n", encoding="utf-8")
     text = autopar_report(tmp_path)
     assert "не найден" in text
     assert "cl.exe /c /O2 /arch:AVX2 /Qpar /Qpar-report:2" in text  # чем собиралось — видно в отчёте
+    assert "cli.cpp(30,5): info C5012" in text  # сообщения о других файлах — тоже
+
+
+def test_msvc_reason_table_follows_documentation():
+    from bench import MSVC_REASONS
+    assert set(MSVC_REASONS) == {str(c) for c in (*range(500, 510), *range(1000, 1011))}
 
 
 def test_autopar_report_missing(tmp_path):
