@@ -97,7 +97,7 @@ class Measurements:
     def __init__(self, path: Path):
         with open(path, encoding="utf-8") as f:
             rows = list(csv.DictReader(f))
-        self.time, self.error, self.sweep = {}, {}, {}
+        self.time, self.median, self.error, self.sweep = {}, {}, {}, {}
         self.flags, self.compiler, self.openmp = {}, {}, ""
         for r in rows:
             n, p = int(r["N"]), int(r["threads"])
@@ -106,6 +106,7 @@ class Measurements:
                 continue
             key = (r["experiment"], r["mode"], n, p)  # сборка однозначно задана экспериментом и P
             self.time[key] = float(r["t_min"])
+            self.median[key] = float(r["t_median"])
             self.error[key] = float(r["err_L"])
             self.flags[r["experiment"]] = r["flags"]
             self.compiler[r["experiment"]] = r["compiler"]
