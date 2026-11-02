@@ -1,4 +1,4 @@
-Дата: 2026-11-03 02:35
+Дата: 2026-11-03 03:17
 ОС: Windows-11-10.0.26200-SP0
 Процессор: Intel(R) Xeon(R) CPU E5-2678 v3 @ 2.50GHz
 Физических ядер: 12
@@ -13,4 +13,4 @@
 Сборки:
   seq: flags=/O2 /arch:AVX2; compiler=MSVC 19.51.36260; openmp=; threads=1
   omp: flags=/O2 /arch:AVX2 -openmp; compiler=MSVC 19.51.36260; openmp=200203; threads=24
-  autopar(P=0): flags=/O2 /arch:AVX2 /Qpar /Qpar-report:2; compiler=MSVC 19.51.36260; openmp=; threads=0
+  autopar (число потоков — из OMP_NUM_THREADS): flags=/O2 /arch:AVX2 /Qpar /Qpar-report:2; compiler=MSVC 19.51.36260; openmp=; threads=0
