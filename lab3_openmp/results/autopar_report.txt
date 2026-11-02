@@ -1,1 +1,8 @@
 Отчёт компилятора об автопараллелизации не найден (нужна сборка через run_all.py).
+
+Строки журналов сборки (msbuild_detailed.log, build_log.txt) с «Qpar» или «C500»:
+  E:\Programs\VisualStudio\Packages\VC\Tools\MSVC\14.51.36231\bin\HostX64\x64\CL.exe /c /IE:\projects\ParallelAlgorithms\lab3_openmp\src /nologo /W4 /WX- /diagnostics:column /O2 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Release\"" /EHsc /MD /Qpar /arch:AVX2 /GR /std:c++17 /Fo"core_autopar.dir\R
+  E:\Programs\VisualStudio\Packages\MSBuild\Current\Bin\amd64\Tracker.exe /d "C:\Program Files (x86)\MSBuild\15.0\FileTracker\FileTracker32.dll" /i E:\projects\ParallelAlgorithms\lab3_openmp\build\core_autopar.dir\Release\core_autopar.tlog /r E:\PROJECTS\PARALLELALGORITHMS\LAB3_OPENMP\SRC\CHOLESKY.CPP
+  E:\Programs\VisualStudio\Packages\VC\Tools\MSVC\14.51.36231\bin\HostX64\x64\CL.exe /c /IE:\projects\ParallelAlgorithms\lab3_openmp\src /nologo /W4 /WX- /diagnostics:column /O2 /D _MBCS /D WIN32 /D _WINDOWS /D "LAB3_VARIANT=\"autopar\"" /D "LAB3_FLAGS=\"/O2 /arch:AVX2 /Qpar /Qpar-report:2\"" /D LAB3_
+  E:\Programs\VisualStudio\Packages\MSBuild\Current\Bin\amd64\Tracker.exe /d "C:\Program Files (x86)\MSBuild\15.0\FileTracker\FileTracker32.dll" /i E:\projects\ParallelAlgorithms\lab3_openmp\build\cholesky_autopar.dir\Release\cholesky_autopar.tlog /r "E:\PROJECTS\PARALLELALGORITHMS\LAB3_OPENMP\SRC\CLI
+  E:\Programs\VisualStudio\Packages\MSBuild\Current\Bin\amd64\Tracker.exe /d "C:\Program Files (x86)\MSBuild\15.0\FileTracker\FileTracker32.dll" /i E:\projects\ParallelAlgorithms\lab3_openmp\build\tests_autopar.dir\Release\tests_autopar.tlog /r "E:\PROJECTS\PARALLELALGORITHMS\LAB3_OPENMP\SRC\CLI.CPP|E
