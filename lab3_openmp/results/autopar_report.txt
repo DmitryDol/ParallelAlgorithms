@@ -1,8 +1,49 @@
-Отчёт компилятора об автопараллелизации не найден (нужна сборка через run_all.py).
+Автопараллелизация: циклы вычислительного ядра (cholesky.cpp), о которых сообщил компилятор
 
-Строки журналов сборки (msbuild_detailed.log, build_log.txt) с «Qpar» или «C500»:
-  E:\Programs\VisualStudio\Packages\VC\Tools\MSVC\14.51.36231\bin\HostX64\x64\CL.exe /c /IE:\projects\ParallelAlgorithms\lab3_openmp\src /nologo /W4 /WX- /diagnostics:column /O2 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Release\"" /EHsc /MD /Qpar /arch:AVX2 /GR /std:c++17 /Fo"core_autopar.dir\R
-  E:\Programs\VisualStudio\Packages\MSBuild\Current\Bin\amd64\Tracker.exe /d "C:\Program Files (x86)\MSBuild\15.0\FileTracker\FileTracker32.dll" /i E:\projects\ParallelAlgorithms\lab3_openmp\build\core_autopar.dir\Release\core_autopar.tlog /r E:\PROJECTS\PARALLELALGORITHMS\LAB3_OPENMP\SRC\CHOLESKY.CPP
-  E:\Programs\VisualStudio\Packages\VC\Tools\MSVC\14.51.36231\bin\HostX64\x64\CL.exe /c /IE:\projects\ParallelAlgorithms\lab3_openmp\src /nologo /W4 /WX- /diagnostics:column /O2 /D _MBCS /D WIN32 /D _WINDOWS /D "LAB3_VARIANT=\"autopar\"" /D "LAB3_FLAGS=\"/O2 /arch:AVX2 /Qpar /Qpar-report:2\"" /D LAB3_
-  E:\Programs\VisualStudio\Packages\MSBuild\Current\Bin\amd64\Tracker.exe /d "C:\Program Files (x86)\MSBuild\15.0\FileTracker\FileTracker32.dll" /i E:\projects\ParallelAlgorithms\lab3_openmp\build\cholesky_autopar.dir\Release\cholesky_autopar.tlog /r "E:\PROJECTS\PARALLELALGORITHMS\LAB3_OPENMP\SRC\CLI
-  E:\Programs\VisualStudio\Packages\MSBuild\Current\Bin\amd64\Tracker.exe /d "C:\Program Files (x86)\MSBuild\15.0\FileTracker\FileTracker32.dll" /i E:\projects\ParallelAlgorithms\lab3_openmp\build\tests_autopar.dir\Release\tests_autopar.tlog /r "E:\PROJECTS\PARALLELALGORITHMS\LAB3_OPENMP\SRC\CLI.CPP|E
+cholesky.cpp:14 (функция dot): C5012: цикл не параллелизован по следующей причине: "1000"
+    for (int k = 0; k < len; ++k) s += x[k] * y[k];
+cholesky.cpp:40 (функция make_test_matrix): C5012: цикл не параллелизован по следующей причине: "1000"
+    for (int i = 0; i < n; ++i)
+cholesky.cpp:41 (функция make_test_matrix): C5012: цикл не параллелизован по следующей причине: "1000"
+    for (int j = 0; j < n; ++j) row(a.data(), n, i)[j] = test_matrix_entry(i, j);
+cholesky.cpp:46 (функция factor_diagonal_block): C5012: цикл не параллелизован по следующей причине: "506"
+    for (int i = 0; i < m; ++i) {
+cholesky.cpp:48 (функция factor_diagonal_block): C5012: цикл не параллелизован по следующей причине: "1000"
+    for (int j = 0; j < i; ++j) {
+cholesky.cpp:58 (функция solve_lower_transposed): C5012: цикл не параллелизован по следующей причине: "1000"
+    for (int r = 0; r < rows; ++r) {
+cholesky.cpp:60 (функция solve_lower_transposed): C5012: цикл не параллелизован по следующей причине: "1000"
+    for (int t = 0; t < m; ++t) {
+cholesky.cpp:68 (функция cholesky_point): C5012: цикл не параллелизован по следующей причине: "506"
+    for (int j = 0; j < n; ++j) {
+cholesky.cpp:73 (функция cholesky_point): C5012: цикл не параллелизован по следующей причине: "1000"
+    for (int i = j + 1; i < n; ++i) {
+cholesky.cpp:90 (функция modify_block): C5012: цикл не параллелизован по следующей причине: "1000"
+    for (int r = 0; r < mi; ++r) {
+cholesky.cpp:92 (функция modify_block): C5012: цикл не параллелизован по следующей причине: "1000"
+    for (int c = 0; c < cols; ++c) row(lij, n, r)[c] = row(a, n, i0 + r)[j0 + c];
+cholesky.cpp:94 (функция modify_block): C5012: цикл не параллелизован по следующей причине: "1000"
+    for (int kb = 0; kb < jb; ++kb) {  // блоки k < j всегда полные (b×b)
+cholesky.cpp:96 (функция modify_block): C5012: цикл не параллелизован по следующей причине: "1000"
+    for (int r = 0; r < mi; ++r) {
+cholesky.cpp:99 (функция modify_block): C5012: цикл не параллелизован по следующей причине: "1000"
+    for (int c = 0; c < cols; ++c) row(lij, n, r)[c] -= dot(lik, row(l, n, j0 + c) + k0, b);
+cholesky.cpp:118 (функция cholesky_block): C5012: цикл не параллелизован по следующей причине: "1000"
+    for (int jb = 0; jb < p; ++jb) {  // блочные столбцы — последовательно: столбец j нужен всем следующим
+cholesky.cpp:123 (функция cholesky_block): C5012: цикл не параллелизован по следующей причине: "1000"
+    for (int ib = jb + 1; ib < p; ++ib) {
+cholesky.cpp:132 (функция cholesky_block_phases): C5012: цикл не параллелизован по следующей причине: "1000"
+    for (int jb = 0; jb < p; ++jb) {
+cholesky.cpp:135 (функция cholesky_block_phases): C5012: цикл не параллелизован по следующей причине: "1000"
+    for (int ib = jb; ib < p; ++ib) modify_block(a, l, n, b, ib, jb);
+cholesky.cpp:138 (функция cholesky_block_phases): C5012: цикл не параллелизован по следующей причине: "1000"
+    for (int ib = jb + 1; ib < p; ++ib) solve_block(l, n, b, ib, jb);
+cholesky.cpp:144 (функция max_error_vs_exact): C5012: цикл не параллелизован по следующей причине: "1000"
+    for (int i = 0; i < n; ++i)
+cholesky.cpp:145 (функция max_error_vs_exact): C5012: цикл не параллелизован по следующей причине: "1000"
+    for (int j = 0; j < n; ++j) err = std::max(err, std::abs(row(l, n, i)[j] - exact_factor_entry(i, j)));
+
+Почему остальные циклы не распараллелены (число случаев):
+  19 × в теле цикла есть зависимость по данным (код 1000)
+  2 × цикл не приводится к канонической форме (код 506)
+  (расшифровка кодов — в документации MSVC: «Vectorizer and parallelizer messages»)
