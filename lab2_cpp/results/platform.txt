@@ -1,15 +1,17 @@
-Дата: 2026-10-30 03:52
+Дата: 2026-11-03 01:51
 ОС: Windows-11-10.0.26200-SP0
 Процессор: Intel(R) Xeon(R) CPU E5-2678 v3 @ 2.50GHz
 Физических ядер: 12
 Частота процессора: 2,50 ГГц
+Кэш L1 (данные и команды): 768 КБ (12 × 64 КБ)
 Кэш L2: 3 МБ (12 × 256 КБ)
 Кэш L3: 30 МБ
 Логических процессоров: 24
-Параметры: N = 64 96 128 192 256 384 512 768 1024 1536 2048; b = 32; подбор b: N = 1024 2048, b = 4 8 16 24 32 48 64 96 128 192 256; повторов = 3
+Размер блока: 16 (подобран по наименьшему времени при N = 1000, 2000)
+Параметры: N = 64 96 128 192 256 384 512 768 1024 1536 2048; b = 16; подбор b: N = 1000 2000, b = 4 8 16 24 32 48 64 96 128 192 256; повторов = 3
 
 Сборки:
-  noopt: flags=/Od; compiler=MSVC 195136260
-  opt: flags=/O2 /arch:AVX2; compiler=MSVC 195136260
-  opt_novec: flags=/O2; compiler=MSVC 195136260
-  opt_fastmath: flags=/O2 /arch:AVX2 /fp:fast; compiler=MSVC 195136260
+  noopt: flags=/Od; compiler=MSVC 19.51.36260
+  opt: flags=/O2 /arch:AVX2; compiler=MSVC 19.51.36260
+  opt_novec: flags=/O2; compiler=MSVC 19.51.36260
+  opt_fastmath: flags=/O2 /arch:AVX2 /fp:fast; compiler=MSVC 19.51.36260
