@@ -1,0 +1,114 @@
+experiment,variant,flags,compiler,openmp,mode,N,b,threads,repeats,batch,t_min,t_median,gflops,err_L
+block_sweep,seq,-O3 -march=native,GCC 13.3.0,,block,1000,8,1,18,1,5.402257e-02,5.472240e-02,6.1703,1.693090e-14
+block_sweep,seq,-O3 -march=native,GCC 13.3.0,,block,2000,8,1,3,1,4.423748e-01,4.570535e-01,6.0281,2.042810e-14
+block_sweep,seq,-O3 -march=native,GCC 13.3.0,,block,1000,12,1,18,1,5.559069e-02,5.601620e-02,5.9962,1.271205e-14
+block_sweep,seq,-O3 -march=native,GCC 13.3.0,,block,2000,12,1,3,1,4.321692e-01,4.332610e-01,6.1704,1.998401e-14
+block_sweep,seq,-O3 -march=native,GCC 13.3.0,,block,1000,16,1,20,1,5.200854e-02,5.224833e-02,6.4092,1.126876e-14
+block_sweep,seq,-O3 -march=native,GCC 13.3.0,,block,2000,16,1,3,1,4.039900e-01,4.042561e-01,6.6008,1.942890e-14
+block_sweep,seq,-O3 -march=native,GCC 13.3.0,,block,1000,24,1,20,1,5.028699e-02,5.073903e-02,6.6286,1.060263e-14
+block_sweep,seq,-O3 -march=native,GCC 13.3.0,,block,2000,24,1,3,1,3.904457e-01,3.907811e-01,6.8298,2.053913e-14
+block_sweep,seq,-O3 -march=native,GCC 13.3.0,,block,1000,32,1,20,1,4.979035e-02,4.998395e-02,6.6947,6.106227e-15
+block_sweep,seq,-O3 -march=native,GCC 13.3.0,,block,2000,32,1,3,1,3.859295e-01,3.863758e-01,6.9097,2.275957e-14
+block_sweep,seq,-O3 -march=native,GCC 13.3.0,,block,1000,48,1,20,1,5.011068e-02,5.043115e-02,6.6519,8.160139e-15
+block_sweep,seq,-O3 -march=native,GCC 13.3.0,,block,2000,48,1,3,1,4.083774e-01,4.090359e-01,6.5299,1.859624e-14
+block_sweep,seq,-O3 -march=native,GCC 13.3.0,,block,1000,64,1,20,1,5.076831e-02,5.175070e-02,6.5658,8.160139e-15
+block_sweep,seq,-O3 -march=native,GCC 13.3.0,,block,2000,64,1,3,1,4.064299e-01,4.126391e-01,6.5612,1.065814e-14
+seq,seq,-O3 -march=native,GCC 13.3.0,,block,100,32,1,30,488,6.975993e-05,6.989282e-05,4.7783,5.551115e-16
+seq,seq,-O3 -march=native,GCC 13.3.0,,block,200,32,1,21,107,4.576711e-04,4.583342e-04,5.8266,1.387779e-15
+seq,seq,-O3 -march=native,GCC 13.3.0,,block,300,32,1,20,35,1.435377e-03,1.439745e-03,6.2701,3.219647e-15
+seq,seq,-O3 -march=native,GCC 13.3.0,,block,500,32,1,20,8,6.286627e-03,6.303801e-03,6.6278,3.219647e-15
+seq,seq,-O3 -march=native,GCC 13.3.0,,block,700,32,1,20,3,1.696210e-02,1.701114e-02,6.7405,5.107026e-15
+seq,seq,-O3 -march=native,GCC 13.3.0,,block,1000,32,1,21,1,4.954583e-02,4.980628e-02,6.7278,6.106227e-15
+seq,seq,-O3 -march=native,GCC 13.3.0,,block,1500,32,1,7,1,1.652434e-01,1.653649e-01,6.8081,1.643130e-14
+seq,seq,-O3 -march=native,GCC 13.3.0,,block,2000,32,1,3,1,3.858625e-01,3.863681e-01,6.9109,2.275957e-14
+seq,seq,-O3 -march=native,GCC 13.3.0,,block,3000,32,1,3,1,1.286708e+00,1.292163e+00,6.9946,4.612977e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,100,32,1,27,534,7.074013e-05,7.113575e-05,4.7121,5.551115e-16
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,100,32,1,20,690,7.153748e-05,7.207595e-05,4.6596,5.551115e-16
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,200,32,1,20,109,4.603378e-04,4.616212e-04,5.7928,1.387779e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,200,32,1,20,109,4.627163e-04,4.631701e-04,5.7631,1.387779e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,300,32,1,21,34,1.440312e-03,1.442365e-03,6.2486,3.219647e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,300,32,1,20,35,1.442396e-03,1.443854e-03,6.2396,3.219647e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,500,32,1,20,8,6.315163e-03,6.330566e-03,6.5979,3.219647e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,500,32,1,20,8,6.322268e-03,6.338210e-03,6.5905,3.219647e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,700,32,1,20,3,1.707808e-02,1.715648e-02,6.6947,5.107026e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,700,32,1,19,3,1.708801e-02,1.719986e-02,6.6909,5.107026e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,1000,32,1,19,1,5.016935e-02,5.049123e-02,6.6442,6.106227e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,1000,32,1,20,1,4.985378e-02,5.033558e-02,6.6862,6.106227e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,1500,32,1,6,1,1.665285e-01,1.684771e-01,6.7556,1.643130e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,1500,32,1,7,1,1.662019e-01,1.665368e-01,6.7689,1.643130e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,2000,32,1,3,1,3.873931e-01,3.879240e-01,6.8836,2.275957e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,2000,32,1,3,1,3.865130e-01,3.884648e-01,6.8993,2.275957e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,3000,32,1,3,1,1.295651e+00,1.306723e+00,6.9463,4.612977e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,3000,32,1,3,1,1.285103e+00,1.285195e+00,7.0033,4.612977e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,100,32,2,48,259,7.939213e-05,7.977627e-05,4.1986,5.551115e-16
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,100,32,2,20,516,9.726771e-05,1.014882e-04,3.4270,5.551115e-16
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,200,32,2,20,127,4.065534e-04,4.082888e-04,6.5592,1.387779e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,200,32,2,20,118,4.138348e-04,4.338274e-04,6.4438,1.387779e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,300,32,2,20,46,1.105439e-03,1.110112e-03,8.1416,3.219647e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,300,32,2,21,42,1.080957e-03,1.107736e-03,8.3260,3.219647e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,500,32,2,19,13,4.006829e-03,4.024425e-03,10.3989,3.219647e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,500,32,2,37,7,3.813840e-03,3.836466e-03,10.9251,3.219647e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,700,32,2,17,6,9.941893e-03,1.010093e-02,11.5002,5.107026e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,700,32,2,17,6,9.508575e-03,9.630683e-03,12.0242,5.107026e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,1000,32,2,17,2,2.857478e-02,2.876434e-02,11.6653,6.106227e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,1000,32,2,18,2,2.681631e-02,2.695949e-02,12.4302,6.106227e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,1500,32,2,12,1,8.858087e-02,8.923250e-02,12.7003,1.643130e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,1500,32,2,12,1,8.645648e-02,8.704518e-02,13.0123,1.643130e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,2000,32,2,5,1,2.073314e-01,2.078083e-01,12.8619,2.275957e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,2000,32,2,5,1,2.017778e-01,2.034900e-01,13.2159,2.275957e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,3000,32,2,3,1,6.733469e-01,6.735581e-01,13.3661,4.612977e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,3000,32,2,3,1,6.615052e-01,6.631949e-01,13.6053,4.612977e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,100,32,3,47,286,7.440422e-05,7.471465e-05,4.4800,5.551115e-16
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,100,32,3,20,610,8.497793e-05,8.528227e-05,3.9226,5.551115e-16
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,200,32,3,21,142,3.445241e-04,3.457931e-04,7.7401,1.387779e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,200,32,3,20,135,3.583704e-04,3.735133e-04,7.4411,1.387779e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,300,32,3,19,57,8.961078e-04,9.252513e-04,10.0434,3.219647e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,300,32,3,20,56,8.625387e-04,8.777673e-04,10.4343,3.219647e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,500,32,3,20,16,3.145049e-03,3.158926e-03,13.2483,3.219647e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,500,32,3,20,17,2.952355e-03,2.973408e-03,14.1130,3.219647e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,700,32,3,19,7,7.515969e-03,7.546277e-03,15.2121,5.107026e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,700,32,3,17,8,7.048672e-03,7.138985e-03,16.2205,5.107026e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,1000,32,3,15,3,2.063524e-02,2.071425e-02,16.1536,6.106227e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,1000,32,3,17,3,1.942739e-02,1.967760e-02,17.1579,6.106227e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,1500,32,3,16,1,6.284996e-02,6.442219e-02,17.8998,1.643130e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,1500,32,3,17,1,5.956173e-02,6.016592e-02,18.8880,1.643130e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,2000,32,3,7,1,1.444295e-01,1.464657e-01,18.4634,2.275957e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,2000,32,3,8,1,1.390463e-01,1.399880e-01,19.1783,2.275957e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,3000,32,3,3,1,4.659836e-01,4.905242e-01,19.3140,4.612977e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,3000,32,3,3,1,4.559921e-01,4.591889e-01,19.7372,4.612977e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,100,32,4,51,263,7.365118e-05,7.404185e-05,4.5258,5.551115e-16
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,100,32,4,20,628,8.254699e-05,8.298577e-05,4.0381,5.551115e-16
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,200,32,4,20,162,3.141489e-04,3.164502e-04,8.4885,1.387779e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,200,32,4,21,149,3.085925e-04,3.203321e-04,8.6414,1.387779e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,300,32,4,20,62,7.896885e-04,8.033363e-04,11.3969,3.219647e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,300,32,4,19,66,7.536145e-04,7.699770e-04,11.9424,3.219647e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,500,32,4,21,18,2.692939e-03,2.715348e-03,15.4726,3.219647e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,500,32,4,21,20,2.427707e-03,2.454228e-03,17.1630,3.219647e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,700,32,4,20,8,6.294780e-03,6.350773e-03,18.1632,5.107026e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,700,32,4,20,9,5.710281e-03,5.740014e-03,20.0224,5.107026e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,1000,32,4,19,3,1.679411e-02,1.723128e-02,19.8482,6.106227e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,1000,32,4,15,4,1.539406e-02,1.580999e-02,21.6534,6.106227e-15
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,1500,32,4,20,1,4.933099e-02,4.982078e-02,22.8051,1.643130e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,1500,32,4,10,2,4.605584e-02,4.852841e-02,24.4269,1.643130e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,2000,32,4,9,1,1.127925e-01,1.144473e-01,23.6422,2.275957e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,2000,32,4,9,1,1.062082e-01,1.085533e-01,25.1079,2.275957e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,block,3000,32,4,3,1,3.607146e-01,3.649565e-01,24.9505,4.612977e-14
+omp,omp,-O3 -march=native -fopenmp,GCC 13.3.0,201511,phases,3000,32,4,3,1,3.791660e-01,3.792866e-01,23.7363,4.612977e-14
+autopar,autopar_p2,-O3 -march=native -ftree-parallelize-loops=2,GCC 13.3.0,,block,100,32,2,22,657,7.046807e-05,7.055277e-05,4.7303,5.551115e-16
+autopar,autopar_p2,-O3 -march=native -ftree-parallelize-loops=2,GCC 13.3.0,,block,200,32,2,21,108,4.590853e-04,4.597021e-04,5.8087,1.387779e-15
+autopar,autopar_p2,-O3 -march=native -ftree-parallelize-loops=2,GCC 13.3.0,,block,300,32,2,21,34,1.437078e-03,1.448348e-03,6.2627,3.219647e-15
+autopar,autopar_p2,-O3 -march=native -ftree-parallelize-loops=2,GCC 13.3.0,,block,500,32,2,20,8,6.317080e-03,6.475556e-03,6.5959,3.219647e-15
+autopar,autopar_p2,-O3 -march=native -ftree-parallelize-loops=2,GCC 13.3.0,,block,700,32,2,19,3,1.702335e-02,1.730050e-02,6.7163,5.107026e-15
+autopar,autopar_p2,-O3 -march=native -ftree-parallelize-loops=2,GCC 13.3.0,,block,1000,32,2,20,1,4.995722e-02,5.041310e-02,6.6724,6.106227e-15
+autopar,autopar_p2,-O3 -march=native -ftree-parallelize-loops=2,GCC 13.3.0,,block,1500,32,2,6,1,1.652932e-01,1.659756e-01,6.8061,1.643130e-14
+autopar,autopar_p2,-O3 -march=native -ftree-parallelize-loops=2,GCC 13.3.0,,block,2000,32,2,3,1,3.848622e-01,3.849748e-01,6.9289,2.275957e-14
+autopar,autopar_p2,-O3 -march=native -ftree-parallelize-loops=2,GCC 13.3.0,,block,3000,32,2,3,1,1.293966e+00,1.320880e+00,6.9554,4.612977e-14
+autopar,autopar_p4,-O3 -march=native -ftree-parallelize-loops=4,GCC 13.3.0,,block,100,32,4,22,658,6.986744e-05,6.999185e-05,4.7709,5.551115e-16
+autopar,autopar_p4,-O3 -march=native -ftree-parallelize-loops=4,GCC 13.3.0,,block,200,32,4,21,108,4.586282e-04,4.592232e-04,5.8144,1.387779e-15
+autopar,autopar_p4,-O3 -march=native -ftree-parallelize-loops=4,GCC 13.3.0,,block,300,32,4,21,34,1.437183e-03,1.439110e-03,6.2623,3.219647e-15
+autopar,autopar_p4,-O3 -march=native -ftree-parallelize-loops=4,GCC 13.3.0,,block,500,32,4,20,8,6.299930e-03,6.321365e-03,6.6138,3.219647e-15
+autopar,autopar_p4,-O3 -march=native -ftree-parallelize-loops=4,GCC 13.3.0,,block,700,32,4,20,3,1.699181e-02,1.701853e-02,6.7287,5.107026e-15
+autopar,autopar_p4,-O3 -march=native -ftree-parallelize-loops=4,GCC 13.3.0,,block,1000,32,4,21,1,4.959293e-02,4.987175e-02,6.7214,6.106227e-15
+autopar,autopar_p4,-O3 -march=native -ftree-parallelize-loops=4,GCC 13.3.0,,block,1500,32,4,7,1,1.653531e-01,1.656669e-01,6.8036,1.643130e-14
+autopar,autopar_p4,-O3 -march=native -ftree-parallelize-loops=4,GCC 13.3.0,,block,2000,32,4,3,1,3.855622e-01,3.859208e-01,6.9163,2.275957e-14
+autopar,autopar_p4,-O3 -march=native -ftree-parallelize-loops=4,GCC 13.3.0,,block,3000,32,4,3,1,1.286517e+00,1.289998e+00,6.9956,4.612977e-14

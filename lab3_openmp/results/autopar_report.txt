@@ -1,0 +1,10 @@
+Автопараллелизация: циклы вычислительного ядра (cholesky.cpp), о которых сообщил компилятор
+
+cholesky.cpp:40 (функция make_test_matrix): parallelizing outer loop 1
+    for (int i = 0; i < n; ++i)
+
+Почему остальные циклы не распараллелены (число случаев):
+  13 × между итерациями есть зависимость по данным (data dependencies exist across iterations)
+  11 × переменная, переходящая между итерациями, не является редукцией (it is not a part of reduction.)
+  8 × компилятор не смог проанализировать зависимости (обращения к одному массиву через указатели) (cannot analyze data dependencies)
+  1 × скалярная зависимость между итерациями (накапливаемая сумма) (scalar dependency between iterations)
