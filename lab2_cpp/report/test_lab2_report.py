@@ -37,6 +37,8 @@ def test_compiler_text():
 def test_times_phrase():
     assert report.times_phrase(1.7) == "быстрее в 1,70 раза"
     assert report.times_phrase(0.95) == "медленнее в 1,05 раза"
+    assert report.times_phrase(0.993) == "работает практически так же (разница меньше 2 %)"
+    assert report.times_phrase(1.015) == "работает практически так же (разница меньше 2 %)"
 
 
 def test_n_equals():
@@ -55,6 +57,8 @@ def test_power_of_two_dips():
     assert report.power_of_two_dips(sizes, [2.3, 2.3, 2.05, 2.2, 1.6]) == [1024, 2048]
     assert report.power_of_two_dips(sizes, [6.3, 6.5, 6.5, 6.6, 6.4]) == []
     assert report.power_of_two_dips([64, 96, 128], [1.0, 1.0, 0.5]) == [128]
+    # первая точка ряда не считается провалом: при малых N скорость ограничена накладными расходами
+    assert report.power_of_two_dips([64, 96, 128], [2.09, 2.25, 2.33]) == []
 
 
 def test_unknown_placeholder_is_reported():
