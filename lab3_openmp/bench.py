@@ -26,7 +26,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from programs import BUILD_DIR, HERE, RESULTS_DIR, autopar_programs, find_program
+from programs import BUILD_DIR, HERE, RESULTS_DIR, autopar_programs, find_program, MSBUILD_LOG
 
 DEFAULT_SIZES = [100, 200, 300, 500, 700, 1000, 1500, 2000, 3000]  # без степеней двойки (конфликтные промахи)
 DEFAULT_SWEEP_SIZES = [1000, 2000]
@@ -178,7 +178,7 @@ def autopar_report(build_dir: Path) -> str:
     не распараллелил остальное (GCC: дамп прохода parloops; MSVC: коды причин C5002)."""
     source = (HERE / "src" / "cholesky.cpp").read_text(encoding="utf-8").splitlines()
     gcc = build_dir / "autopar_report.txt"
-    msvc_log = build_dir / "build_log.txt"
+    msvc_logs = [log for log in (build_dir / MSBUILD_LOG, build_dir / "build_log.txt") if log.exists()]
     found, reasons = [], {}
     if gcc.exists():
         for line in gcc.read_text(encoding="utf-8", errors="replace").splitlines():
@@ -191,14 +191,15 @@ def autopar_report(build_dir: Path) -> str:
                 if m:
                     reasons[m.group(1).strip()] = reasons.get(m.group(1).strip(), 0) + 1
             break
-    elif msvc_log.exists():
+    elif msvc_logs:
         # «file.cpp(14) : info C5002: …» (cl) или «file.cpp(14,5): info C5002: … [проект.vcxproj]» (MSBuild);
         # русская версия пишет свой текст и кавычки, поэтому код причины — последнее число в сообщении.
-        for line in msvc_log.read_text(encoding="utf-8", errors="replace").splitlines():
-            m = re.search(r"cholesky\.cpp\((\d+)(?:,\d+)?\)\s*:[^:]*?\b(C500[12])\s*:\s*(.*)", line)
-            if m:
-                message = re.sub(r"\s*\[[^\]]*\.vcxproj\]\s*$", "", m.group(3)).strip()
-                found.append((int(m.group(1)), f"{m.group(2)}: {message}"))
+        for log in msvc_logs:
+            for line in log.read_text(encoding="utf-8", errors="replace").splitlines():
+                m = re.search(r"cholesky\.cpp\((\d+)(?:,\d+)?\)\s*:[^:]*?\b(C500[12])\s*:\s*(.*)", line)
+                if m:
+                    message = re.sub(r"\s*\[[^\]]*\.vcxproj\]\s*$", "", m.group(3)).strip()
+                    found.append((int(m.group(1)), f"{m.group(2)}: {message}"))
         for _, message in sorted(set(found)):  # MSBuild может повторить строку — каждый цикл считается один раз
             code = re.search(r"(\d{3,4})\D*$", message) if message.startswith("C5002") else None
             if code:
@@ -206,7 +207,14 @@ def autopar_report(build_dir: Path) -> str:
                           else f"код причины {code.group(1)}")
                 reasons[reason] = reasons.get(reason, 0) + 1
     if not found and not reasons:
-        return "Отчёт компилятора об автопараллелизации не найден (нужна сборка через run_all.py).\n"
+        text = "Отчёт компилятора об автопараллелизации не найден (нужна сборка через run_all.py).\n"
+        evidence = list(dict.fromkeys(line.strip()[:300] for log in msvc_logs
+                                      for line in log.read_text(encoding="utf-8", errors="replace").splitlines()
+                                      if "Qpar" in line or "C500" in line))[:10]
+        if evidence:  # что есть в журнале: ключи компиляции и строки с кодами C500x — чтобы найти причину
+            text += f"\nСтроки журналов сборки ({', '.join(log.name for log in msvc_logs)}) с «Qpar» или «C500»:\n"
+            text += "".join(f"  {line}\n" for line in evidence)
+        return text
     lines = ["Автопараллелизация: циклы вычислительного ядра (cholesky.cpp), о которых сообщил компилятор", ""]
     for number, message in sorted(set(found)):
         function = next((m.group(1) for line in reversed(source[:number])
@@ -218,7 +226,7 @@ def autopar_report(build_dir: Path) -> str:
         for reason, count in sorted(reasons.items(), key=lambda item: -item[1]):
             text = f"{GCC_REASONS[reason]} ({reason})" if reason in GCC_REASONS else reason
             lines.append(f"  {count} × {text}")
-        if msvc_log.exists() and not gcc.exists():
+        if msvc_logs and not gcc.exists():
             lines.append("  (расшифровка кодов — в документации MSVC: «Vectorizer and parallelizer messages»)")
     return "\n".join(lines) + "\n"
 

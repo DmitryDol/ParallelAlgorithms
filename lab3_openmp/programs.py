@@ -7,6 +7,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 BUILD_DIR = Path(os.environ.get("LAB3_BUILD_DIR", HERE / "build"))
 RESULTS_DIR = HERE / "results"
+# Подробный журнал MSBuild (генератор Visual Studio) в каталоге сборки: в нём сообщения /Qpar-report.
+MSBUILD_LOG = "msbuild_detailed.log"
 
 
 def find_program(variant: str, build_dir: Path = BUILD_DIR):

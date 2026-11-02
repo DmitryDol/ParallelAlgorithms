@@ -7,6 +7,8 @@ import pytest
 
 from bench import autopar_report, autopar_threads, choose_block, default_threads
 from plot_speedup import amdahl_alpha, amdahl_speedup, static_schedule_speedup
+from programs import MSBUILD_LOG
+from run_all import build_command
 
 
 def test_default_threads():
@@ -100,6 +102,34 @@ def test_static_schedule_model_bounds():
     # при большом N число блоков на поток велико — ускорение близко к P
     assert static_schedule_speedup(3000, 12, 4, "block") == pytest.approx(3.86, abs=0.01)
     assert static_schedule_speedup(3000, 12, 12, "phases") > static_schedule_speedup(3000, 12, 12, "block")
+
+
+def test_build_command_asks_msbuild_for_detailed_file_log(tmp_path):
+    # MSBuild пишет строки «info C5002» как обычный вывод с низкой важностью — их видно только в подробном журнале
+    (tmp_path / "CMakeCache.txt").write_text("CMAKE_GENERATOR:INTERNAL=Visual Studio 17 2022\n", encoding="utf-8")
+    command = build_command(tmp_path)
+    assert command[:3] == ["cmake", "--build", str(tmp_path)]
+    assert command[-2:] == ["--", f"-flp:Verbosity=detailed;Encoding=UTF-8;LogFile={tmp_path / MSBUILD_LOG}"]
+    (tmp_path / "CMakeCache.txt").write_text("CMAKE_GENERATOR:INTERNAL=Ninja\n", encoding="utf-8")
+    assert "--" not in build_command(tmp_path)
+    assert "--" not in build_command(tmp_path / "нет")  # ещё не настроено — генератор неизвестен
+
+
+def test_autopar_report_from_msbuild_detailed_log(tmp_path):
+    (tmp_path / MSBUILD_LOG).write_text(
+        "                     C:\\lab\\src\\cholesky.cpp(41,5): info C5001: loop parallelized\n", encoding="utf-8")
+    (tmp_path / "build_log.txt").write_text("  cholesky.cpp\n", encoding="utf-8")
+    assert "cholesky.cpp:41 (функция make_test_matrix): C5001: loop parallelized" in autopar_report(tmp_path)
+
+
+def test_autopar_report_missing_shows_what_the_log_has(tmp_path):
+    (tmp_path / MSBUILD_LOG).write_text(
+        "  Task \"CL\"\n"
+        "    cl.exe /c /O2 /arch:AVX2 /Qpar /Qpar-report:2 C:\\lab\\src\\cholesky.cpp\n"
+        "    cholesky.cpp\n", encoding="utf-8")
+    text = autopar_report(tmp_path)
+    assert "не найден" in text
+    assert "cl.exe /c /O2 /arch:AVX2 /Qpar /Qpar-report:2" in text  # чем собиралось — видно в отчёте
 
 
 def test_autopar_report_missing(tmp_path):

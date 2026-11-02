@@ -9,16 +9,18 @@
                                                                      # компилятора, графики (из старого CSV)
 
 Вычисления и замер времени делает программа на C++ (cholesky_<сборка>); Python только запускает её, собирает CSV
-и строит графики и отчёт. Вывод сборки сохраняется в build/build_log.txt: там отчёт MSVC об автопараллелизации.
+и строит графики и отчёт. Вывод сборки сохраняется в build/build_log.txt, у Visual Studio подробный журнал
+MSBuild — в build/msbuild_detailed.log: там отчёт MSVC об автопараллелизации.
 """
 
 import argparse
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
 
-from programs import BUILD_DIR
+from programs import BUILD_DIR, MSBUILD_LOG
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -41,6 +43,23 @@ def step(title, command, log=None, env=None):
         sys.exit(f"Шаг «{title}» завершился с ошибкой (код {result.returncode})")
 
 
+def cmake_generator(build_dir: Path) -> str:
+    cache = build_dir / "CMakeCache.txt"
+    text = cache.read_text(encoding="utf-8", errors="replace") if cache.exists() else ""
+    m = re.search(r"^CMAKE_GENERATOR:INTERNAL=(.*)$", text, re.MULTILINE)
+    return m.group(1).strip() if m else ""
+
+
+def build_command(build_dir: Path = BUILD_DIR) -> list:
+    """Полная пересборка: отчёт компилятора об автопараллелизации должен попасть в журнал. MSBuild (генератор
+    Visual Studio) распознаёт в выводе компилятора только error и warning, а строки /Qpar-report («info C5002»)
+    пишет с низкой важностью — их нет ни на экране, ни с --verbose; поэтому — подробный журнал в файл."""
+    command = ["cmake", "--build", str(build_dir), "--config", "Release", "--clean-first"]
+    if cmake_generator(build_dir).startswith("Visual Studio"):
+        command += ["--", f"-flp:Verbosity=detailed;Encoding=UTF-8;LogFile={build_dir / MSBUILD_LOG}"]
+    return command
+
+
 def main():
     parser = argparse.ArgumentParser(description="Этап 3: сборка, тесты, замеры, графики и отчёт.")
     parser.add_argument("-G", "--generator", help="генератор CMake для первой настройки (Ninja, \"MinGW Makefiles\")")
@@ -55,11 +74,8 @@ def main():
         if args.generator and not (BUILD_DIR / "CMakeCache.txt").exists():
             configure += ["-G", args.generator]
         step("Настройка CMake", configure)
-        # Полная пересборка, чтобы отчёт компилятора об автопараллелизации попал в журнал сборки. --verbose: MSBuild
-        # (генератор Visual Studio) при минимальной подробности может не выводить сообщения /Qpar-report;
         # VSLANG=1033 — сообщения MSVC на английском, как их разбирает bench.autopar_report.
-        step("Сборка", ["cmake", "--build", BUILD_DIR, "--config", "Release", "--clean-first", "--verbose"],
-             log=BUILD_DIR / "build_log.txt", env={"VSLANG": "1033"})
+        step("Сборка", build_command(BUILD_DIR), log=BUILD_DIR / "build_log.txt", env={"VSLANG": "1033"})
         step("Отчёт об автопараллелизации", [python, HERE / "bench.py", "--report-only"])
         step("Тесты C++", ["ctest", "--test-dir", BUILD_DIR, "-C", "Release", "--output-on-failure"])
         step("Сверка с этапами 1–2", [python, "-m", "pytest", "-q", HERE / "test_lab3_crosscheck.py"])
