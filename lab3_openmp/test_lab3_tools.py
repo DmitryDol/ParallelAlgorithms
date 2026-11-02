@@ -6,7 +6,7 @@
 import pytest
 
 from bench import autopar_report, autopar_threads, choose_block, default_threads
-from plot_speedup import amdahl_alpha, amdahl_speedup
+from plot_speedup import amdahl_alpha, amdahl_speedup, static_schedule_speedup
 
 
 def test_default_threads():
@@ -60,7 +60,46 @@ def test_autopar_report_from_msvc(tmp_path):
     text = autopar_report(tmp_path)
     assert "cholesky.cpp:40 (функция make_test_matrix): C5001: loop parallelized" in text
     assert "C5002: loop not parallelized due to reason '1000'" in text
-    assert "1 × код причины 1000" in text
+    assert "1 × в теле цикла есть зависимость по данным (код 1000)" in text
+
+
+def test_autopar_report_from_msbuild_log(tmp_path):
+    # MSBuild: позиция «(строка,столбец)», в конце — проект; русская версия: свой текст и кавычки «"1000"»
+    (tmp_path / "build_log.txt").write_text(
+        r"  C:\lab\src\cholesky.cpp(41,5): info C5001: loop parallelized [C:\lab\build\core_autopar.vcxproj]" + "\n"
+        r"  C:\lab\src\cholesky.cpp(14,5): info C5002: loop not parallelized due to reason '1000' "
+        r"[C:\lab\build\core_autopar.vcxproj]" + "\n"
+        r'  C:\lab\src\cholesky.cpp(99,13): info C5002: цикл не распараллелен по причине "1008" '
+        r"[C:\lab\build\core_autopar.vcxproj]" + "\n"
+        r"  C:\lab\src\main.cpp(80,5): info C5002: loop not parallelized due to reason '1000'" + "\n",
+        encoding="utf-8")
+    text = autopar_report(tmp_path)
+    assert "cholesky.cpp:41 (функция make_test_matrix): C5001: loop parallelized\n" in text
+    assert "vcxproj" not in text and "main.cpp" not in text
+    assert "cholesky.cpp:14 (функция dot)" in text and "cholesky.cpp:99 (функция modify_block)" in text
+    assert "1 × в теле цикла есть зависимость по данным (код 1000)" in text
+    assert "1 × по оценке компилятора, в цикле слишком мало работы для распараллеливания (код 1008)" in text
+
+
+def test_autopar_report_unknown_msvc_reason(tmp_path):
+    (tmp_path / "build_log.txt").write_text(
+        r"C:\lab\src\cholesky.cpp(14) : info C5002: loop not parallelized due to reason '1234'" + "\n",
+        encoding="utf-8")
+    assert "1 × код причины 1234" in autopar_report(tmp_path)
+
+
+def test_static_schedule_model_bounds():
+    for strategy in ("block", "phases"):
+        assert static_schedule_speedup(1000, 12, 1, strategy) == pytest.approx(1.0)
+        assert static_schedule_speedup(10, 16, 8, strategy) == pytest.approx(1.0)  # один блок — нечего делить
+        speedups = [static_schedule_speedup(1000, 12, p, strategy) for p in (1, 2, 3, 4, 6, 8, 12, 24)]
+        assert all(s <= p for s, p in zip(speedups, (1, 2, 3, 4, 6, 8, 12, 24)))
+        assert speedups == sorted(speedups)  # больше потоков — не медленнее (без накладных расходов)
+    # block: на каждом шаге не больше одной параллельной итерации, если блочных строк две
+    assert static_schedule_speedup(32, 16, 4, "block") == pytest.approx(1.0)
+    # при большом N число блоков на поток велико — ускорение близко к P
+    assert static_schedule_speedup(3000, 12, 4, "block") == pytest.approx(3.86, abs=0.01)
+    assert static_schedule_speedup(3000, 12, 12, "phases") > static_schedule_speedup(3000, 12, 12, "block")
 
 
 def test_autopar_report_missing(tmp_path):

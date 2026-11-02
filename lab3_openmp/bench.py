@@ -57,6 +57,8 @@ def parse_args(argv=None):
     parser.add_argument("--blocks", type=int, nargs="+", default=DEFAULT_BLOCKS,
                         help="размеры блока для подбора (%(default)s)")
     parser.add_argument("-r", "--repeats", type=int, default=3, help="наименьшее число замеров на точку (%(default)s)")
+    parser.add_argument("--report-only", action="store_true",
+                        help="без замеров: только записать results/autopar_report.txt по журналу сборки")
     args = parser.parse_args(argv)
     args.threads = sorted(set(args.threads or default_threads(os.cpu_count() or 1)))
     if min(args.sizes + args.sweep_sizes + args.blocks + args.threads + [args.block or 1, args.repeats]) < 1:
@@ -151,6 +153,25 @@ GCC_REASONS = {  # причины, по которым GCC не распарал
     "it is not a part of reduction.": "переменная, переходящая между итерациями, не является редукцией",
 }
 
+MSVC_REASONS = {  # коды причин C5002 /Qpar (документация MSVC «Vectorizer and parallelizer messages»)
+    "500": "у цикла несколько выходов или заголовок не заканчивается увеличением счётчика",
+    "501": "счётчик цикла не локальный или верхняя граница меняется в цикле",
+    "502": "счётчик цикла меняется не на +1",
+    "503": "в цикле есть обработка исключений или switch",
+    "504": "тело цикла может выбросить исключение, требующее уничтожения объекта C++",
+    "1000": "в теле цикла есть зависимость по данным",
+    "1001": "в цикле есть запись в скалярную переменную, которая используется после цикла",
+    "1002": "внутренний цикл уже распараллелен",
+    "1003": "в теле цикла вызов встроенной функции, которая может читать или писать память",
+    "1004": "в теле цикла скалярная редукция",
+    "1005": "указана директива no_parallel",
+    "1006": "в функции есть директивы OpenMP",
+    "1007": "счётчик или границы цикла — не 32-битные целые со знаком",
+    "1008": "по оценке компилятора, в цикле слишком мало работы для распараллеливания",
+    "1009": "цикл do-while (распараллеливаются только циклы for)",
+    "1010": "условие цикла — «не равно» (!=)",
+}
+
 
 def autopar_report(build_dir: Path) -> str:
     """Что распараллелил компилятор в вычислительном ядре (cholesky.cpp) — с текстом строк исходника, — и почему
@@ -171,13 +192,19 @@ def autopar_report(build_dir: Path) -> str:
                     reasons[m.group(1).strip()] = reasons.get(m.group(1).strip(), 0) + 1
             break
     elif msvc_log.exists():
+        # «file.cpp(14) : info C5002: …» (cl) или «file.cpp(14,5): info C5002: … [проект.vcxproj]» (MSBuild);
+        # русская версия пишет свой текст и кавычки, поэтому код причины — последнее число в сообщении.
         for line in msvc_log.read_text(encoding="utf-8", errors="replace").splitlines():
-            m = re.search(r"cholesky\.cpp\((\d+)\)\s*:\s*info (C500[12]): (.*)", line)
+            m = re.search(r"cholesky\.cpp\((\d+)(?:,\d+)?\)\s*:[^:]*?\b(C500[12])\s*:\s*(.*)", line)
             if m:
-                found.append((int(m.group(1)), f"{m.group(2)}: {m.group(3).strip()}"))
-                code = re.search(r"reason '(\d+)'", m.group(3))
-                if code:
-                    reasons[f"код причины {code.group(1)}"] = reasons.get(f"код причины {code.group(1)}", 0) + 1
+                message = re.sub(r"\s*\[[^\]]*\.vcxproj\]\s*$", "", m.group(3)).strip()
+                found.append((int(m.group(1)), f"{m.group(2)}: {message}"))
+        for _, message in sorted(set(found)):  # MSBuild может повторить строку — каждый цикл считается один раз
+            code = re.search(r"(\d{3,4})\D*$", message) if message.startswith("C5002") else None
+            if code:
+                reason = (f"{MSVC_REASONS[code.group(1)]} (код {code.group(1)})" if code.group(1) in MSVC_REASONS
+                          else f"код причины {code.group(1)}")
+                reasons[reason] = reasons.get(reason, 0) + 1
     if not found and not reasons:
         return "Отчёт компилятора об автопараллелизации не найден (нужна сборка через run_all.py).\n"
     lines = ["Автопараллелизация: циклы вычислительного ядра (cholesky.cpp), о которых сообщил компилятор", ""]
@@ -196,8 +223,17 @@ def autopar_report(build_dir: Path) -> str:
     return "\n".join(lines) + "\n"
 
 
+def write_autopar_report(build_dir: Path, out_dir: Path):
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "autopar_report.txt").write_text(autopar_report(build_dir), encoding="utf-8")
+
+
 def main(argv=None):
     args = parse_args(argv)
+    if args.report_only:
+        write_autopar_report(args.build_dir, args.out_dir)
+        print(f"Отчёт об автопараллелизации записан в {args.out_dir / 'autopar_report.txt'}", file=sys.stderr)
+        return
     seq, omp = find_program("seq", args.build_dir), find_program("omp", args.build_dir)
     if seq is None or omp is None:
         sys.exit(f"Не найдены программы cholesky_seq и cholesky_omp в {args.build_dir}.\n"
@@ -240,7 +276,7 @@ def main(argv=None):
         writer = csv.DictWriter(f, fieldnames=list(rows[-1].keys()))
         writer.writeheader()
         writer.writerows(rows)
-    (args.out_dir / "autopar_report.txt").write_text(autopar_report(args.build_dir), encoding="utf-8")
+    write_autopar_report(args.build_dir, args.out_dir)
 
     info = [
         f"Дата: {datetime.datetime.now():%Y-%m-%d %H:%M}",
@@ -252,7 +288,8 @@ def main(argv=None):
         "",
         "Сборки:",
     ]
-    for name, program in [("seq", seq), ("omp", omp), *((f"autopar(P={p})", path) for p, path in autopar.items())]:
+    autopar_names = {p: f"autopar_p{p}" if p else "autopar (число потоков — из OMP_NUM_THREADS)" for p in autopar}
+    for name, program in [("seq", seq), ("omp", omp), *((autopar_names[p], path) for p, path in autopar.items())]:
         details = subprocess.run([str(program), "--info"], capture_output=True, text=True, encoding="utf-8").stdout
         info.append(f"  {name}: " + "; ".join(details.split("\n")[1:]).strip("; "))
     (args.out_dir / "platform.txt").write_text("\n".join(info) + "\n", encoding="utf-8")

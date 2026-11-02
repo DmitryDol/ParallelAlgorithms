@@ -10,10 +10,10 @@
 Результаты (в results/):
   speedup_n, speedup_n_abs — вариант А, стратегия block: S_отн(N) и S_абс(N) для каждого P;
   speedup_p, speedup_p_abs — S(P) при нескольких N, идеальное S = P и закон Амдала;
-  efficiency_p             — эффективность E = S_отн / P;
+  efficiency_p             — эффективность E = S_отн / P и модель распределения блоков (static_schedule_speedup);
   strategies               — стратегии block и phases при наибольшем P на физических ядрах;
   autopar                  — вариант Б: S_абс(N) сборок с автопараллелизацией;
-  speedup_block.csv, speedup_phases.csv, speedup_p.csv, amdahl.csv, autopar.csv — таблицы.
+  speedup_block.csv, speedup_phases.csv, speedup_p.csv, amdahl.csv, model.csv, autopar.csv — таблицы.
 """
 
 import argparse
@@ -56,6 +56,41 @@ def amdahl_alpha(threads, speedups):
 
 def amdahl_speedup(alpha, p):
     return 1 / (alpha + (1 - alpha) / p)
+
+
+def static_schedule_speedup(n, b, p, strategy):
+    """Модель ускорения, которое допускает сам алгоритм: время операции над блоком пропорционально числу её
+    операций, потоки равноскоростные, накладных расходов нет. На шаге j каждый параллельный цикл ждёт поток
+    с наибольшей порцией: schedule(static) отдаёт потоку до ⌈m/P⌉ из m соседних итераций."""
+    blocks = -(-n // b)
+
+    def chunks_time(costs):  # время параллельного цикла при schedule(static)
+        q = -(-len(costs) // p)
+        return max(sum(costs[k:k + q]) for k in range(0, len(costs), q)) if costs else 0.0
+
+    t1 = tp = 0.0
+    for jb in range(blocks):
+        mj = min(b, n - jb * b)
+
+        def modify(ib, diagonal=False):  # скалярные произведения длины jb·b (и копирование A_ij)
+            mi = min(b, n - ib * b)
+            pairs = mi * (mi + 1) / 2 if diagonal else mi * mj
+            return pairs * (2 * jb * b + 1)
+
+        def solve(ib):
+            return min(b, n - ib * b) * mj * mj
+
+        factor = mj ** 3 / 3
+        below = range(jb + 1, blocks)
+        if strategy == "block":
+            costs = [modify(ib) + solve(ib) for ib in below]
+            t1 += modify(jb, True) + factor + sum(costs)
+            tp += modify(jb, True) + factor + chunks_time(costs)
+        else:  # phases: модификации столбца → факторизация L_jj → треугольные решения
+            mods, solves = [modify(jb, True)] + [modify(ib) for ib in below], [solve(ib) for ib in below]
+            t1 += sum(mods) + factor + sum(solves)
+            tp += chunks_time(mods) + factor + chunks_time(solves)
+    return t1 / tp
 
 
 class Measurements:
@@ -157,14 +192,16 @@ def main(argv=None):
     m = Measurements(out / "measurements.csv")
     cores = physical_cores(read_platform(out / "platform.txt"))
     parallel = [p for p in m.threads if p > 1]
-    colors = plt.cm.viridis([k / max(1, len(parallel) - 1) * 0.9 for k in range(len(parallel))])
+    colors = plt.cm.tab10.colors  # соседние P должны различаться: P = 8 и P = 12 — самые близкие кривые
 
     # --- S(N) для каждого P
     for name, func, label in (("speedup_n", m.s_rel, "относительное"), ("speedup_n_abs", m.s_abs, "абсолютное")):
         fig, ax = new_axes(f"Вариант А (директивы OpenMP): {label} ускорение, b = {m.block}", "Ускорение S")
         for p, color in zip(parallel, colors):
             points = [(n, func("block", n, p)) for n in m.sizes if func("block", n, p)]
-            ax.plot(*zip(*points), "o-", color=color, linewidth=2.2, markersize=7, label=f"P = {p}")
+            beyond = cores is not None and p > cores  # потоков больше, чем ядер: делят ядра (Hyper-Threading)
+            ax.plot(*zip(*points), "s--" if beyond else "o-", color=color, linewidth=2.2, markersize=7,
+                    label=f"P = {p}" + (" (больше, чем ядер)" if beyond else ""))
         ax.axhline(1.0, color="gray", linewidth=1)
         ax.set_ylim(bottom=0)
         log2_ticks(ax, m.sizes)
@@ -212,9 +249,20 @@ def main(argv=None):
 
     # --- эффективность
     fig, ax = new_axes(f"Вариант А: эффективность E = S_отн / P, b = {m.block}", "Эффективность E", "Число потоков P")
+    model_rows = []
     for n, color in zip(fixed, ("#1f77b4", "#ff7f0e", "#2ca02c")):
         ax.plot(m.threads, [ratio(m.s_rel("block", n, p), p) for p in m.threads], "o-", color=color,
                 linewidth=2.2, markersize=7, label=f"N = {n}")
+        # модель — только до числа ядер: она считает потоки равноскоростными, а на одном ядре два потока — нет
+        ax.plot(fit_threads, [static_schedule_speedup(n, m.block, p, "block") / p for p in fit_threads], "--",
+                color=color, linewidth=1.2, label=f"модель распределения блоков, N = {n}")
+    for mode in ("block", "phases"):
+        for n in fixed:
+            for p in fit_threads:
+                model = static_schedule_speedup(n, m.block, p, mode)
+                model_rows.append([mode, n, p, fmt(model), fmt(m.s_rel(mode, n, p)),
+                                   fmt(ratio(m.s_rel(mode, n, p), model))])
+    write_csv(out / "model.csv", ["стратегия", "N", "P", "S_модель", "S_отн", "S_отн / S_модель"], model_rows)
     if cores and cores < max(m.threads):
         ax.axvline(cores, color="gray", linestyle="--", linewidth=1.2, label=f"физических ядер: {cores}")
     ax.set_ylim(0, 1.1)
