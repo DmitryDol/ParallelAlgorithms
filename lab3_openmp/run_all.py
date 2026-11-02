@@ -14,7 +14,6 @@ MSBuild — в build/msbuild_detailed.log: там отчёт MSVC об авто�
 """
 
 import argparse
-import os
 import re
 import subprocess
 import sys
@@ -27,13 +26,12 @@ ROOT = HERE.parent
 LOG_TAIL = 40  # сколько последних строк журнала сборки показать на экране
 
 
-def step(title, command, log=None, env=None):
+def step(title, command, log=None):
     print(f"\n=== {title}: {' '.join(map(str, command))}", flush=True)
-    env = {**os.environ, **(env or {})}
     if log is None:
-        result = subprocess.run([str(c) for c in command], cwd=ROOT, env=env)
+        result = subprocess.run([str(c) for c in command], cwd=ROOT)
     else:  # подробный вывод — в журнал, на экран — только конец (там итог сборки и ошибки)
-        result = subprocess.run([str(c) for c in command], cwd=ROOT, env=env, capture_output=True, text=True,
+        result = subprocess.run([str(c) for c in command], cwd=ROOT, capture_output=True, text=True,
                                 encoding="utf-8", errors="replace")
         output = result.stdout + result.stderr
         log.write_text(output, encoding="utf-8")
@@ -74,8 +72,7 @@ def main():
         if args.generator and not (BUILD_DIR / "CMakeCache.txt").exists():
             configure += ["-G", args.generator]
         step("Настройка CMake", configure)
-        # VSLANG=1033 — сообщения MSVC на английском, как их разбирает bench.autopar_report.
-        step("Сборка", build_command(BUILD_DIR), log=BUILD_DIR / "build_log.txt", env={"VSLANG": "1033"})
+        step("Сборка", build_command(BUILD_DIR), log=BUILD_DIR / "build_log.txt")
         step("Отчёт об автопараллелизации", [python, HERE / "bench.py", "--report-only"])
         step("Тесты C++", ["ctest", "--test-dir", BUILD_DIR, "-C", "Release", "--output-on-failure"])
         step("Сверка с этапами 1–2", [python, "-m", "pytest", "-q", HERE / "test_lab3_crosscheck.py"])
