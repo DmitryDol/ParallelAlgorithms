@@ -1,22 +1,16 @@
-Дата: 2026-11-02 22:25
-ОС: Linux-6.18.44-fc-v230-x86_64-with-glibc2.39
-Процессор: Intel(R) Xeon(R) Processor
-Физических ядер: 4
-Частота процессора: 2,70 ГГц
-Кэш L1 данных: 192 КБ (4 × 48 КБ)
-Кэш L2: 8 МБ (4 × 2 МБ)
-Кэш L3: 480 МБ
-Логических процессоров: 4
-Размер блока: 32 (подобран по наименьшему времени последовательной программы при N = 1000, 2000)
-Параметры: N = 100 200 300 500 700 1000 1500 2000 3000; b = 32; P = 1 2 3 4; автопараллелизация: P = 2 4; повторов = 3
+Дата: 2026-11-03 02:35
+ОС: Windows-11-10.0.26200-SP0
+Процессор: Intel(R) Xeon(R) CPU E5-2678 v3 @ 2.50GHz
+Физических ядер: 12
+Частота процессора: 2,50 ГГц
+Кэш L1 (данные и команды): 768 КБ (12 × 64 КБ)
+Кэш L2: 3 МБ (12 × 256 КБ)
+Кэш L3: 30 МБ
+Логических процессоров: 24
+Размер блока: 12 (подобран по наименьшему времени последовательной программы при N = 1000, 2000)
+Параметры: N = 100 200 300 500 700 1000 1500 2000 3000; b = 12; P = 1 2 3 4 6 8 12 16 24; автопараллелизация: P = 2 4 24; повторов = 3
 
 Сборки:
-  seq: flags=-O3 -march=native; compiler=GCC 13.3.0; openmp=; threads=1
-  omp: flags=-O3 -march=native -fopenmp; compiler=GCC 13.3.0; openmp=201511; threads=4
-  autopar(P=2): flags=-O3 -march=native -ftree-parallelize-loops=2; compiler=GCC 13.3.0; openmp=; threads=2
-  autopar(P=4): flags=-O3 -march=native -ftree-parallelize-loops=4; compiler=GCC 13.3.0; openmp=; threads=4
-  autopar(P=6): flags=-O3 -march=native -ftree-parallelize-loops=6; compiler=GCC 13.3.0; openmp=; threads=6
-  autopar(P=8): flags=-O3 -march=native -ftree-parallelize-loops=8; compiler=GCC 13.3.0; openmp=; threads=8
-  autopar(P=12): flags=-O3 -march=native -ftree-parallelize-loops=12; compiler=GCC 13.3.0; openmp=; threads=12
-  autopar(P=16): flags=-O3 -march=native -ftree-parallelize-loops=16; compiler=GCC 13.3.0; openmp=; threads=16
-  autopar(P=24): flags=-O3 -march=native -ftree-parallelize-loops=24; compiler=GCC 13.3.0; openmp=; threads=24
+  seq: flags=/O2 /arch:AVX2; compiler=MSVC 19.51.36260; openmp=; threads=1
+  omp: flags=/O2 /arch:AVX2 -openmp; compiler=MSVC 19.51.36260; openmp=200203; threads=24
+  autopar(P=0): flags=/O2 /arch:AVX2 /Qpar /Qpar-report:2; compiler=MSVC 19.51.36260; openmp=; threads=0
