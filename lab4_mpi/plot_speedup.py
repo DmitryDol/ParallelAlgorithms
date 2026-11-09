@@ -13,6 +13,7 @@
   efficiency_p             — эффективность E = S_отн / P и модель распределения строк (cyclic_model_speedup);
   strategies               — стратегии block и phases при наибольшем P на физических ядрах;
   mpi_vs_omp               — MPI против OpenMP (этап 3), если этап 3 замерен на том же процессоре;
+  scheme                   — схема: циклическое распределение блочных строк и рассылка строки j (для отчёта);
   speedup_block.csv, speedup_phases.csv, speedup_p.csv, amdahl.csv, model.csv, mpi_vs_omp.csv — таблицы.
 """
 
@@ -21,6 +22,7 @@ import csv
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch, Rectangle
 from matplotlib.ticker import NullFormatter
 
 from programs import HERE, RESULTS_DIR
@@ -192,6 +194,44 @@ def physical_cores(info):
         return None
 
 
+def draw_scheme(out_dir: Path, blocks=8, procs=3, step=3):
+    """Схема для отчёта: блочная строка i — у процесса i mod P; на шаге j владелец рассылает строку j (L_j0 … L_jj),
+    каждый процесс считает свои блоки L_ij, i > j. Вычисленные раньше блоки — светлее, ещё не вычисленные — белые."""
+    colors = plt.cm.tab10.colors
+    fig, ax = plt.subplots(figsize=(12, 7), dpi=200)
+    for i in range(blocks):
+        owner = i % procs
+        for k in range(i + 1):
+            done, current = k < step, k == step and i >= step
+            face = colors[owner] if done or current else "white"
+            alpha = 0.35 if done else 0.85 if current else 1.0
+            ax.add_patch(Rectangle((k, i), 1, 1, facecolor=face, alpha=alpha, edgecolor="gray", linewidth=1))
+            if current and i > step:
+                ax.add_patch(Rectangle((k, i), 1, 1, fill=False, hatch="//", edgecolor="black", linewidth=0))
+            ax.text(k + 0.5, i + 0.5, f"$L_{{{i}{k}}}$", ha="center", va="center", fontsize=10,
+                    color="black" if done or current else "gray")
+        ax.text(-0.25, i + 0.5, f"строка {i} — процесс {owner}", ha="right", va="center", fontsize=11,
+                color=colors[owner])
+    ax.add_patch(Rectangle((0, step), step + 1, 1, fill=False, edgecolor="black", linewidth=3.5))
+    ax.annotate(f"MPI_Bcast: процесс {step % procs} рассылает строку j = {step}\n(L_{step}0 … L_{step}{step}) всем процессам;\n"
+                f"затем каждый процесс считает свои\nблоки L_i{step}, i > {step} (заштрихованы)",
+                xy=(step + 1, step + 0.5), xytext=(step + 1.6, step - 1.4), fontsize=12, va="center",
+                arrowprops=dict(arrowstyle="->", color="black", linewidth=1.5))
+    ax.set_xlim(-4.2, blocks + 5.2)
+    ax.set_ylim(blocks + 0.1, -0.1)
+    ax.set_aspect("equal")
+    ax.axis("off")
+    ax.set_title(f"Циклическое распределение блочных строк: P = {procs}, p = {blocks}, шаг j = {step}",
+                 fontsize=15, pad=12)
+    legend = [Patch(facecolor=colors[r], alpha=0.85, label=f"процесс {r}") for r in range(procs)]
+    legend += [Patch(facecolor="white", edgecolor="black", hatch="//", label="блоки L_ij, i > j: считаются на шаге j"),
+               Patch(facecolor="white", edgecolor="gray", label="ещё не вычислены")]
+    ax.legend(handles=legend, loc="lower right", fontsize=11)
+    fig.tight_layout()
+    fig.savefig(out_dir / "scheme.png", dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Графики ускорения этапа 4.")
     parser.add_argument("-d", "--results-dir", type=Path, default=RESULTS_DIR, help="каталог результатов")
@@ -317,6 +357,7 @@ def main(argv=None):
     else:
         print("Сравнение с OpenMP пропущено: нет результатов этапа 3 на этом же процессоре")
 
+    draw_scheme(out)
     print(f"Графики и таблицы сохранены в {out}")
     for n in fixed:
         best = max(m.procs, key=lambda p: m.s_rel("block", n, p) or 0)
