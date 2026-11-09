@@ -63,6 +63,20 @@ def test_words():
     assert report.n_set(sizes, sizes) == "при всех $N$"
     assert report.n_set([100, 300], sizes) == "при $N$ = 100 и 300"
     assert report.n_set([], sizes) == "ни при одном $N$"
+    assert report.dec_range(0.999, 1.0) == "1,00"  # не «1,00–1,00»
+    assert report.dec_range(0.69, 0.87) == "0,69–0,87"
+    assert report.points([(100, 24)]) == "при $N = 100$, $P = 24$"
+    assert report.points([(100, 16), (100, 24)]) == "при $N = 100$ и $P$ = 16 и 24"
+    assert report.points([(100, 24), (200, 24)]) == "при $P = 24$ и $N$ = 100 и 200"
+
+
+def test_hyperthreading_dip():
+    # при 16 потоках на 12 ядрах ускорение ниже, чем и при 12, и при 24: часть ядер занята двумя потоками
+    assert report.hyperthreading_dip({12: 10.5, 16: 6.7, 24: 8.4}, cores=12) == 16
+    assert report.hyperthreading_dip({12: 6.2, 16: 7.2, 24: 5.1}, cores=12) is None
+    assert report.hyperthreading_dip({12: 10.5, 24: 8.4}, cores=12) is None
+    assert report.hyperthreading_dip({4: 3.5, 6: 2.0, 8: 3.0}, cores=4) == 6
+    assert report.hyperthreading_dip({4: 3.5, 6: 2.0, 7: 3.0}, cores=4) is None  # 7 ≠ 2 × ядер
 
 
 def test_openmp_version_text():

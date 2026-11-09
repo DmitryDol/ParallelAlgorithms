@@ -143,6 +143,39 @@ def n_range(ns):
     return f"$N = {ns[0]}$" if len(ns) == 1 else f"$N = {ns[0]} \\ldots {ns[-1]}$"
 
 
+def dec_range(lo, hi, digits=2):
+    """«0,69–0,87»; если концы совпадают после округления — одно число: «1,00»."""
+    a, b = dec(lo, digits), dec(hi, digits)
+    return a if a == b else f"{a}–{b}"
+
+
+def points(pairs):
+    """Точки (N, P) словами: «при $N = 100$, $P = 24$», «при $N = 100$ и $P$ = 16 и 24»,
+    «при $P = 24$ и $N$ = 100 и 200»."""
+    ns, ps = sorted({n for n, _ in pairs}), sorted({p for _, p in pairs})
+    if len(pairs) == 1:
+        return f"при $N = {ns[0]}$, $P = {ps[0]}$"
+    if len(ns) == 1:
+        return f"при $N = {ns[0]}$ и $P$ = {and_list(map(str, ps))}"
+    if len(ps) == 1:
+        return f"при $P = {ps[0]}$ и $N$ = {and_list(map(str, ns))}"
+    return "при " + and_list(f"$N = {n}$, $P = {p}$" for n, p in sorted(pairs))
+
+
+def hyperthreading_dip(speedups: dict, cores):
+    """P (между числом ядер и вдвое большим), при котором ускорение ниже, чем и на всех ядрах, и при двух потоках
+    на каждом ядре: часть ядер занята двумя потоками, часть — одним, и шаг ждёт самого медленного. None — если
+    провала нет или нет замера при P = 2 × ядер."""
+    full = 2 * cores
+    if cores not in speedups or full not in speedups:
+        return None
+    between = [p for p in speedups if cores < p < full]
+    if not between:
+        return None
+    p = min(between, key=lambda q: speedups[q])
+    return p if speedups[p] < min(speedups[cores], speedups[full]) else None
+
+
 def compiler_family(compiler: str) -> str:
     return "msvc" if compiler.startswith("MSVC") else "gcc"
 
@@ -376,7 +409,7 @@ def compute(m: Measurements, info: dict, autopar: dict) -> tuple[dict, dict]:
                  f"{slashed(alpha_cores['block', n] for n in fixed)}: их завышают замеры при $P > {max(fit)}$, "
                  "которые ниже модели. ")
     e_fit = [s("block", n, max(fit)) / max(fit) for n in fixed]
-    text += f"Эффективность при $P = {max(fit)}$ — {dec(min(e_fit))}–{dec(max(e_fit))}."
+    text += f"Эффективность при $P = {max(fit)}$ — {dec_range(min(e_fit), max(e_fit))}."
     if p_agree and p_agree < p_cores:
         text += f" При $P > {p_agree}$ ускорение заметно ниже модели (п. «Большое число потоков»)."
     v["analysis_p"] = text
@@ -456,6 +489,12 @@ def compute(m: Measurements, info: dict, autopar: dict) -> tuple[dict, dict]:
                  + f"; при малых $N$ оно падает: при $N = {n0}$, $P = {p_max}$ — {dec(s('block', n0, p_max))}. "
                  "Второй поток на том же ядре делит с первым его вычислительные устройства и кэш, а накладные "
                  "расходы на синхронизацию растут с числом потоков.")
+        dip = hyperthreading_dip({p: s("block", big, p) for p in threads if p >= p_cores}, p_cores)
+        if dip:
+            text += (f" Сильнее всего ускорение проседает при $P = {dip}$ ({dec(s('block', big, dip))} при "
+                     f"$N = {big}$): на {dip - p_cores} ядрах работают по два потока, на остальных {2 * p_cores - dip} "
+                     "— по одному; потоки на общих ядрах считают медленнее, а барьер в конце каждого цикла ждёт самого "
+                     f"медленного. При $P = {2 * p_cores}$ по два потока на каждом ядре, и нагрузка снова равномерна.")
     v["analysis_many"] = text
 
     # --- автопараллелизация
@@ -465,7 +504,7 @@ def compute(m: Measurements, info: dict, autopar: dict) -> tuple[dict, dict]:
     text = ""
     if s_auto:
         text += (f"Программа, распараллеленная компилятором, ускорения не даёт: $S_{{\\text{{абс}}}}$ = "
-                 f"{dec(min(s_auto))}–{dec(max(s_auto))} при $P$ = {autopar_p} "
+                 f"{dec_range(min(s_auto), max(s_auto))} при $P$ = {autopar_p} "
                  if max(s_auto) < 1.1 else
                  f"Программа, распараллеленная компилятором, ускоряется до {dec(max(s_auto))} раза при "
                  f"$P$ = {autopar_p} ")
@@ -516,8 +555,8 @@ def compute(m: Measurements, info: dict, autopar: dict) -> tuple[dict, dict]:
     conclusions.append(
         f"Вариант А: директивы OpenMP над одним циклом — по блокам столбца — дают относительное ускорение до "
         f"{dec(s(best_mode, best_n, best_pp))} (стратегия `{best_mode}`, $N = {best_n}$, $P = {best_pp}$); ускорение "
-        "растёт с размерностью" + (f", а {n_set(sorted({n for _, n, _ in slow}), sizes)} при некоторых $P$ "
-                                   "параллельная программа медленнее однопоточной." if slow else "."))
+        "растёт с размерностью" + (f", а {points([(n, p) for _, n, p in slow])} параллельная программа "
+                                   "медленнее однопоточной." if slow else "."))
     if p_agree:
         conclusions.append(
             f"До $P = {p_agree}$ ускорение совпадает с моделью распределения блоков: его ограничивают последовательная "
@@ -533,7 +572,7 @@ def compute(m: Measurements, info: dict, autopar: dict) -> tuple[dict, dict]:
     if s_auto:
         conclusions.append(
             "Вариант Б: автоматическое распараллеливание компилятором "
-            + (f"ускорения не дало ($S_{{\\text{{абс}}}}$ = {dec(min(s_auto))}–{dec(max(s_auto))})"
+            + (f"ускорения не дало ($S_{{\\text{{абс}}}}$ = {dec_range(min(s_auto), max(s_auto))})"
                if max(s_auto) < 1.1 else f"дало ускорение до {dec(max(s_auto))}")
             + (": компилятор не смог доказать независимость итераций ни одного цикла разложения" if not kernel else "")
             + ". Для этого алгоритма распараллеливание требует знания программиста, выраженного директивами.")
