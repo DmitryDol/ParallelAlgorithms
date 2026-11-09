@@ -149,3 +149,19 @@ def test_scheme_is_drawn(tmp_path):
 
     plot_speedup.draw_scheme(tmp_path)
     assert (tmp_path / "scheme.png").stat().st_size > 10_000
+
+
+def test_scheme_legend_does_not_cover_blocks():
+    # у пользователя matplotlib рисует шрифтом DejaVu Sans — он шире, и легенда наезжала на последний блок
+    import matplotlib
+    from matplotlib.patches import Rectangle
+
+    import plot_speedup
+
+    with matplotlib.rc_context({"font.family": "DejaVu Sans"}):
+        fig, ax, legend = plot_speedup.scheme_figure()
+        fig.canvas.draw()
+        box = legend.get_window_extent()
+        blocks = [p.get_window_extent() for p in ax.patches if isinstance(p, Rectangle)]
+        assert blocks and all(not box.overlaps(b) for b in blocks)
+

@@ -194,9 +194,10 @@ def physical_cores(info):
         return None
 
 
-def draw_scheme(out_dir: Path, blocks=8, procs=3, step=3):
+def scheme_figure(blocks=8, procs=3, step=3):
     """Схема для отчёта: блочная строка i — у процесса i mod P; на шаге j владелец рассылает строку j (L_j0 … L_jj),
-    каждый процесс считает свои блоки L_ij, i > j. Вычисленные раньше блоки — светлее, ещё не вычисленные — белые."""
+    каждый процесс считает свои блоки L_ij, i > j. Вычисленные раньше блоки — светлее, ещё не вычисленные — белые.
+    Возвращает (рисунок, оси, легенду)."""
     colors = plt.cm.tab10.colors
     fig, ax = plt.subplots(figsize=(12, 7), dpi=200)
     for i in range(blocks):
@@ -226,7 +227,14 @@ def draw_scheme(out_dir: Path, blocks=8, procs=3, step=3):
     legend = [Patch(facecolor=colors[r], alpha=0.85, label=f"процесс {r}") for r in range(procs)]
     legend += [Patch(facecolor="white", edgecolor="black", hatch="//", label="блоки L_ij, i > j: считаются на шаге j"),
                Patch(facecolor="white", edgecolor="gray", label="ещё не вычислены")]
-    ax.legend(handles=legend, loc="lower right", fontsize=11)
+    # левый нижний угол легенды — справа от последнего блока: не наезжает на блоки при любой ширине шрифта
+    legend = ax.legend(handles=legend, loc="lower left", bbox_to_anchor=(blocks + 0.3, blocks),
+                       bbox_transform=ax.transData, fontsize=11)
+    return fig, ax, legend
+
+
+def draw_scheme(out_dir: Path, **kwargs):
+    fig, _, _ = scheme_figure(**kwargs)
     fig.tight_layout()
     fig.savefig(out_dir / "scheme.png", dpi=200, bbox_inches="tight")
     plt.close(fig)
