@@ -30,8 +30,8 @@
 (`lab3_openmp/README.md`, «Черновик отчёта», «Журнал», пп. 10–14). Этап 4: программа (`seq` и `mpi`, стратегии
 `block` и `phases`, циклическое распределение блочных строк), тесты (в том числе под `mpiexec`), сверка, скрипты
 замеров и графиков готовы, замеры на компьютере пользователя сделаны (05.11.2026, MS-MPI 10.1, $b = 12$) и
-перепроверены; осталось — отчёт, по желанию — проверки $P = 12$ и $P = 24$ (`lab4_mpi/README.md`, «Результаты»,
-«Журнал», пп. 9–12).
+перепроверены; черновик отчёта генерируется `lab4_mpi/report/make_report.py`; осталось — вычитка черновика,
+по желанию — проверки $P = 12$ и $P = 24$ (`lab4_mpi/README.md`, «Результаты», «Черновик отчёта», «Журнал», пп. 9–13).
 
 ## Структура
 
@@ -71,7 +71,8 @@ cmake -S lab2_cpp -B lab2_cpp/build && cmake --build lab2_cpp/build && ctest --t
 uv run python lab2_cpp/run_all.py         # этап 2 целиком: сборка, тесты, сверка, замеры, графики, черновик отчёта
 uv run python lab3_openmp/run_all.py      # этап 3 целиком: сборка, тесты, сверка, замеры (P = 1…), графики, отчёт
 uv run python lab3_openmp/report/make_report.py   # только черновик отчёта этапа 3 по results/
-uv run python lab4_mpi/run_all.py         # этап 4 целиком: сборка, тесты (и под mpiexec), сверка, замеры, графики
+uv run python lab4_mpi/run_all.py         # этап 4 целиком: сборка, тесты (и под mpiexec), сверка, замеры, графики, отчёт
+uv run python lab4_mpi/report/make_report.py      # только черновик отчёта этапа 4 по results/
 ```
 Зависимости добавлять через `uv add` (не pip). Для C++ (этапы 2–4) — CMake, C++17; код должен собираться
 и в Windows (MSVC или MinGW; MPI — MS-MPI), и в Linux (GCC/Clang; Open MPI/MPICH).
