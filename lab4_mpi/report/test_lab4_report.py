@@ -40,6 +40,13 @@ def test_words():
     assert report.n_set([500], sizes) == "при $N$ = 500"  # одно значение — не «при всех N ≥ 500»
     assert report.times_slower(32.79) == "в 33 раза"
     assert report.times_slower(1.94) == "в 1,9 раза"
+    assert report.times_slower(25.6) == "в 26 раз"
+    assert report.times_slower(21.2) == "в 21 раз"
+    assert report.times_slower(12.4) == "в 12 раз"
+    # диапазон — только для подряд идущих размерностей
+    assert report.n_range([100], sizes) == "$N = 100$"
+    assert report.n_range([100, 200, 300], sizes) == "$N = 100 \\ldots 300$"
+    assert report.n_range([100, 500], sizes) == "$N$ = 100 и 500"
 
 
 def test_table_procs():
@@ -142,6 +149,92 @@ def test_report_from_openmpi_results_without_openmp_stage(tmp_path):
     assert "<<" not in text and "None" not in text and "!if" not in text
     assert len(media) == 6  # без рисунка сравнения с OpenMP
     assert "Сравнение с OpenMP не выполнялось" in text
+
+
+USER_PROCS = (1, 2, 3, 4, 6, 8, 12, 16, 24)
+USER_SIZES = (100, 200, 300, 500, 1000, 2000, 3000)
+
+
+def write_user_like_results(path, omp_reaches_model, b=12):
+    """Синтетика «как у пользователя» (12 ядер / 24 логических): MPI отстаёт от модели тем сильнее, чем больше P
+    и меньше N (обмены), замеры до 12 процессов устойчивы; при P = 24 — обвал отдельных точек (block, N = 100 и 500;
+    phases, N = 200), при остальных малых N его нет. OpenMP (этап 3) — на том же процессоре: либо достигает модели
+    до 12 потоков, либо при 12 потоках упирается в 65 % от неё."""
+    from plot_speedup import cyclic_model_speedup
+
+    mpi_dir, omp_dir = path / "mpi", path / "omp"
+    mpi_dir.mkdir()
+    omp_dir.mkdir()
+    platform = "Процессор: Intel(R) Xeon(R) CPU E5-2678 v3\nФизических ядер: 12\nЛогических процессоров: 24\n"
+    rows, omp_rows = [], []
+    collapse = {("block", 100): 0.04, ("block", 500): 0.75, ("phases", 200): 0.13}
+
+    def add(experiment, mode, n, p, t, spread):
+        rows.append({"experiment": experiment, "variant": experiment, "flags": "/O2", "compiler": "MSVC 19.51",
+                     "mpi": "MS-MPI 10.1 (MPI 2.0)" if experiment == "mpi" else "", "mode": mode, "N": n, "b": b,
+                     "procs": p, "repeats": 5, "batch": 1, "t_min": t, "t_median": t * spread,
+                     "gflops": n**3 / 3 / t / 1e9, "err_L": 1e-17 * n})
+
+    for n in USER_SIZES:
+        t1 = n**3 / 3 / 3e9
+        add("seq", "block", n, 1, t1, 1.0)
+        for mode in ("block", "phases"):
+            cost = {"block": 0.01, "phases": 0.018}[mode]  # обмены: доля растёт с P и убывает с N
+            s12 = cyclic_model_speedup(n, b, 12, mode) / (1 + cost * 11 * 1000 / n)
+            for p in USER_PROCS:
+                if p <= 12:
+                    s, spread = cyclic_model_speedup(n, b, p, mode) / (1 + cost * (p - 1) * 1000 / n), 1.01
+                else:
+                    s, spread = s12 * (0.75 if p == 16 else 0.92), 1.06
+                if p == 24 and (mode, n) in collapse:
+                    s, spread = collapse[mode, n], 1.3
+                add("mpi", mode, n, p, t1 / s, spread)
+                omp_s = cyclic_model_speedup(n, b, min(p, 12), mode) * (1.0 if p <= 12 else 0.7)
+                if not omp_reaches_model and p >= 8:
+                    omp_s *= 0.65
+                omp_rows.append({"experiment": "omp", "mode": mode, "N": n, "threads": p, "b": b,
+                                 "t_min": t1 / omp_s, "err_L": 1e-17 * n})
+    for directory, data in ((mpi_dir, rows), (omp_dir, omp_rows)):
+        with open(directory / "measurements.csv", "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=list(data[0]))
+            writer.writeheader()
+            writer.writerows(data)
+        (directory / "platform.txt").write_text(platform, encoding="utf-8")
+    (mpi_dir / "mpi_vs_omp.png").write_bytes(b"")  # рисунок сравнения есть — сравнение войдёт в отчёт
+    return mpi_dir, omp_dir
+
+
+def user_like_analysis(tmp_path, omp_reaches_model):
+    from plot_speedup import Measurements
+
+    mpi_dir, omp_dir = write_user_like_results(tmp_path, omp_reaches_model)
+    m = Measurements(mpi_dir / "measurements.csv")
+    values, _, flags = report.compute(m, report.read_platform(mpi_dir / "platform.txt"), mpi_dir, omp_dir)
+    assert flags["omp"]
+    return values
+
+
+def test_gap_is_attributed_to_exchanges_when_openmp_reaches_model(tmp_path):
+    # OpenMP на том же компьютере достигает модели до 12 потоков — отставание MPI нельзя списывать на компьютер
+    v = user_like_analysis(tmp_path, omp_reaches_model=True)
+    many, omp, conclusions = v["analysis_many"], v["analysis_omp"], v["analysis_conclusions"]
+    assert "цена обменов" in many
+    assert "упирается" not in many and "не только обмены" not in many and "частоты" not in many
+    assert "упираются" not in omp and "в пределах разброса" not in omp
+    assert "ограничивает уже компьютер" not in conclusions and "цена обменов" in conclusions
+    # замеры при P = 12 устойчивы — стратегии сравниваются на всех ядрах, без оговорки о разбросе
+    assert "При $P = 12$ стратегия" in v["analysis_strategies"] and "неустойчив" not in v["analysis_strategies"]
+    # при 16 процессах на 12 ядрах — провал (часть ядер с двумя процессами), при 24 — снова равномерно
+    assert "провала при $P = 16$" in many
+    # обвал при P = 24 — в отдельных точках, а при N = 200 у block его нет
+    assert "эпизодическ" in many
+    assert "100 \\ldots 500" not in v["analysis_n"] and "$N$ = 100 и 500" in v["analysis_n"]
+
+
+def test_gap_is_attributed_to_computer_when_openmp_falls_short_too(tmp_path):
+    v = user_like_analysis(tmp_path, omp_reaches_model=False)
+    assert "упирается в то же ограничение" in v["analysis_many"]
+    assert "цена обменов" not in v["analysis_many"]
 
 
 def test_scheme_is_drawn(tmp_path):

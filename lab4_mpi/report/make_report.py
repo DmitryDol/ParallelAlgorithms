@@ -42,6 +42,7 @@ DECIMAL_ABSTRACT_NUM = "0"   # нумерованный список шабло�
 MACHINE_EPSILON = 2.220446049250313e-16
 MODES = ("block", "phases")
 AGREEMENT = 0.9              # замер «совпадает с моделью», если не ниже 90 % от неё
+STABLE = 1.05                # замеры устойчивы, если медиана повторов не больше минимума на 5 %
 
 
 # ---------------------------------------------------------------- числа и слова
@@ -135,9 +136,15 @@ def n_equals(ns):
     return and_list(f"$N = {n}$" for n in ns)
 
 
-def n_range(ns):
-    """[100] → «$N = 100$»; [100, 200, 300] → «$N = 100 \\ldots 300$»."""
-    return f"$N = {ns[0]}$" if len(ns) == 1 else f"$N = {ns[0]} \\ldots {ns[-1]}$"
+def n_range(ns, sizes):
+    """[100] → «$N = 100$»; [100, 200, 300] → «$N = 100 \\ldots 300$», если в sizes между ними ничего нет;
+    иначе списком: «$N$ = 100 и 500»."""
+    if len(ns) == 1:
+        return f"$N = {ns[0]}$"
+    start = sizes.index(ns[0])
+    if list(ns) == list(sizes[start:start + len(ns)]):
+        return f"$N = {ns[0]} \\ldots {ns[-1]}$"
+    return f"$N$ = {and_list(map(str, ns))}"
 
 
 def mb(bytes_):
@@ -147,8 +154,8 @@ def mb(bytes_):
 
 
 def times_slower(x):
-    """32,79 → «в 33 раза»; 1,94 → «в 1,9 раза»."""
-    return f"в {dec(x, 0 if x >= 10 else 1)} раза"
+    """32,79 → «в 33 раза»; 25,6 → «в 26 раз»; 1,94 → «в 1,9 раза» (дробное — всегда «раза»)."""
+    return f"в {plural(round(x), 'раз', 'раза', 'раз')}" if x >= 10 else f"в {dec(x, 1)} раза"
 
 
 def table_procs(procs, cores):
@@ -264,6 +271,20 @@ def compute(m: Measurements, info: dict, results_dir: Path, omp_dir: Path) -> tu
     def s_omp(mode, n, p):
         return ratio(omp_times.get((mode, n, 1)), omp_times.get((mode, n, p)))
 
+    def spread(p):  # во сколько раз медиана повторов больше минимума (N из графиков зависимости от P)
+        return max((m.median[k] / m.time[k] for k in m.time if k[0] == "mpi" and k[2] >= fixed[0] and k[3] == p),
+                   default=1.0)
+
+    # отставание от модели при всех ядрах: обмены или компьютер? Если программа OpenMP на том же компьютере модель
+    # достигает (или, без неё, отставание убывает с ростом N, как доля обменов) и замеры устойчивы — это обмены
+    gap = p_agree is not None and p_agree < p_cores
+    at_cores = {(mode, n): s(mode, n, p_cores) / model[mode, n, p_cores] for mode in MODES for n in fixed}
+    omp_at_cores = [s_omp(mode, n, p_cores) / model[mode, n, p_cores] for mode in MODES for n in fixed
+                    if has_omp and s_omp(mode, n, p_cores)]
+    omp_reaches = bool(omp_at_cores) and min(omp_at_cores) >= AGREEMENT
+    grows_with_n = all(at_cores[mode, a] < at_cores[mode, c] for mode in MODES for a, c in zip(fixed, fixed[1:]))
+    exchanges = gap and spread(p_cores) <= STABLE and (omp_reaches if has_omp else grows_with_n)
+
     v = {
         "compiler": m.compiler.get("mpi") or m.compiler.get("seq", "—"),
         "repeats": str(m.repeats),
@@ -346,7 +367,7 @@ def compute(m: Measurements, info: dict, results_dir: Path, omp_dir: Path) -> tu
     more = [p for p in procs if p > p0]
     text = (f"При $P = {p_cores}$ относительное ускорение стратегии `block` "
             f"{trend_text(s_ref[n0], n0, s_ref[n1], n1)} (таблица <<tab:speedup_block>>, рис. <<fig:speedup_n.png>>). "
-            + ("Наибольшее ускорение достигается " + ", ".join(f"при {n_range(ns)} — при $P = {p}$" for p, ns in groups)
+            + ("Наибольшее ускорение достигается " + ", ".join(f"при {n_range(ns, sizes)} — при $P = {p}$" for p, ns in groups)
                + ". " if len(groups) > 1 else f"Наибольшее ускорение при всех $N$ достигается при $P = {groups[0][0]}$. ")
             + f"Самое большое значение — {dec(s('block', n_best, best_p[n_best]))} при $N = {n_best}$, "
               f"$P = {best_p[n_best]}$. С ростом $N$ вычисления растут как $N^3$, а пересылки — как $N^2$ "
@@ -362,9 +383,9 @@ def compute(m: Measurements, info: dict, results_dir: Path, omp_dir: Path) -> tu
     if slow:
         worst = min((s("block", n, p), n, p) for p, ns in slow.items() for n in ns)
         text += ("Параллельная программа медленнее однопроцессной "
-                 + "; ".join(f"при $P = {p}$ и {n_range(ns)}" for p, ns in sorted(slow.items()))
-                 + f" (в худшем случае $S_{{\\text{{отн}}}}$ = {dec(worst[0], 3 if worst[0] < 0.1 else 2)} "
-                   f"при $N = {worst[1]}$, $P = {worst[2]}$; п. «Большое число процессов»). ")
+                 + and_list(f"при $P = {p}$ ({n_range(ns, sizes)})" for p, ns in sorted(slow.items()))
+                 + f"; в худшем случае $S_{{\\text{{отн}}}}$ = {dec(worst[0], 3 if worst[0] < 0.1 else 2)} "
+                   f"при $N = {worst[1]}$, $P = {worst[2]}$ (п. «Большое число процессов»). ")
     seq_ratio = [ratio(m.t_seq(n), m.t("mpi", mode, n, 1)) for mode in MODES for n in sizes]
     lo, hi = min(seq_ratio), max(seq_ratio)
     text += (f"\n\nОтношение $T_{{\\text{{посл}}}} / T_1$ = {dec(lo)}–{dec(hi)}: "
@@ -407,13 +428,19 @@ def compute(m: Measurements, info: dict, results_dir: Path, omp_dir: Path) -> tu
              if all(x > y for x, y in zip(excess, excess[1:])) else
              "; с ростом $N$ она в целом уменьшается, но не строго — сказывается разброс замеров. ")
     if wide:
-        text += (f"Подгонка по всем $P \\leq {p_cores}$ (рис. <<fig:speedup_p.png>>) даёт большие значения — "
-                 f"{slashed(alpha_cores['block', n] for n in fixed)}: их завышают замеры при $P > {max(fit)}$, "
-                 "которые ниже модели. ")
+        a_cores = slashed(alpha_cores["block", n] for n in fixed)
+        same_alpha = all(abs(alpha_cores["block", n] / alpha["block", n] - 1) < 0.1 for n in fixed)
+        text += (f"Подгонка по всем $P \\leq {p_cores}$ (рис. <<fig:speedup_p.png>>) даёт "
+                 + (f"практически те же значения — {a_cores}: закон Амдала с постоянной $\\alpha$ описывает замеры во "
+                    f"всём диапазоне до {p_cores} процессов, то есть время обменов на шаге почти не зависит от $P$ и "
+                    "добавляется к последовательной части (рассылка строки $j$ стоит на критическом пути каждого "
+                    "шага). " if same_alpha else
+                    f"большие значения — {a_cores}: их завышают замеры при $P > {max(fit)}$, которые ниже модели. "))
     e_fit = [s("block", n, max(fit)) / max(fit) for n in fixed]
     text += f"Эффективность при $P = {max(fit)}$ — {dec(min(e_fit))}–{dec(max(e_fit))}."
-    if p_agree and p_agree < p_cores:
-        text += f" При $P > {p_agree}$ ускорение заметно ниже модели (п. «Большое число процессов»)."
+    if gap:
+        text += (f" При $P > {p_agree}$ ускорение хотя бы при одном $N$ ниже модели больше чем на "
+                 f"{dec(100 * (1 - AGREEMENT), 0)} % (п. «Большое число процессов»).")
     v["analysis_p"] = text
 
     # --- стратегии: разница меньше 2 % — «практически так же»
@@ -422,8 +449,9 @@ def compute(m: Measurements, info: dict, results_dir: Path, omp_dir: Path) -> tu
         return ([n for n in sizes if r[n] >= 1.02], [n for n in sizes if 0.98 < r[n] < 1.02],
                 [n for n in sizes if r[n] <= 0.98])
 
-    # основное сравнение — при наибольшем P, где замеры совпадают с моделью (устойчивы); при всех ядрах — с оговоркой
-    p_main = p_agree if p_agree else p_cores
+    # основное сравнение — на всех ядрах, если замеры там устойчивы; иначе — при наибольшем P, где они совпадают
+    # с моделью, а на всех ядрах — с оговоркой
+    p_main = p_cores if spread(p_cores) <= STABLE else (p_agree or p_cores)
     win, same, lose = compare(p_main)
     gain = s("phases", big, p_main) / s("block", big, p_main) - 1
 
@@ -448,48 +476,100 @@ def compute(m: Measurements, info: dict, results_dir: Path, omp_dir: Path) -> tu
              "(таблица <<tab:amdahl>>). Цена — две рассылки на шаге вместо одной (тот же объём, но вдвое больше "
              "сообщений)")
     small_lose = [n for n in lose if n < 1000]
-    text += (f", поэтому при малых $N$ ({n_set(small_lose, sizes).removeprefix('при ')}), где задержки рассылок заметны, "
-             "она проигрывает." if small_lose else
-             ": на этом компьютере (обмен через общую память) задержка сообщения мала, и выигрыш от меньшей "
-             "последовательной части больше.")
+    lag = {mode: s(mode, fixed[0], p_main) / model[mode, fixed[0], p_main] for mode in MODES}
+    if small_lose:
+        text += (f", поэтому при малых $N$ ({n_set(small_lose, sizes).removeprefix('при ')}), где задержки рассылок "
+                 "заметны, она проигрывает.")
+    elif lag["phases"] < lag["block"] - 0.02:
+        text += (": вторая рассылка заметна — относительно своей модели `phases` отстаёт сильнее (при "
+                 f"$N = {fixed[0]}$ и $P = {p_main}$ достигает {dec(100 * lag['phases'], 0)} % модели, `block` — "
+                 f"{dec(100 * lag['block'], 0)} %), но выигрыш от меньшей последовательной части больше.")
+    else:
+        text += (": на этом компьютере (обмен через общую память) задержка сообщения мала, и выигрыш от меньшей "
+                 "последовательной части больше.")
     v["analysis_strategies"] = text
 
     # --- сравнение с OpenMP
     if has_omp:
-        small = [p for p in omp_common if 1 < p <= (p_agree or 4)]
-        t_ratio = [m.t("mpi", "block", big, p) / omp_times["block", big, p] for p in [1, *small]]
+        t_ratio = {p: m.t("mpi", "block", big, p) / omp_times["block", big, p] for p in omp_common}
+        close = [p for p in omp_common if p <= p_cores]
+        p_same = 1  # до какого P время одинаково (в пределах 5 %)
+        for p in close:
+            if abs(t_ratio[p] - 1) >= 0.05:
+                break
+            p_same = p
+        text = (f"При $N = {big}$ и $P \\leq {p_same}$ время программ MPI и OpenMP одинаково в пределах "
+                f"{percent(max(abs(t_ratio[p] - 1) for p in close if p <= p_same))} (таблица <<tab:mpi_vs_omp>>, "
+                "рис. <<fig:mpi_vs_omp.png>>): работа распределена одинаково (у процесса или потока — "
+                "$\\lfloor m/P \\rfloor$ или $\\lceil m/P \\rceil$ блочных строк шага), и при большом $N$ обмены почти "
+                "ничего не стоят. ")
+        rest = [p for p in close if p > p_same]
+        groups = [(word, [p for p in rest if (t_ratio[p] > 1) == slower]) for word, slower in (("медленнее", True),
+                                                                                              ("быстрее", False))]
+        if rest:
+            text += ("При большем $P$ программа MPI " + and_list(
+                f"{word} на " + and_list(f"{percent(abs(t_ratio[p] - 1))} при $P = {p}$" for p in ps)
+                for word, ps in groups if ps) + ". ")
         n_mid = fixed[0]
-        s_ratio = [s("block", n_mid, p) / s_omp("block", n_mid, p) for p in small if s_omp("block", n_mid, p)]
-        p8 = 8 if 8 in omp_common else max(p for p in omp_common if p <= p_cores)
-        r8 = m.t("mpi", "block", big, p8) / omp_times["block", big, p8]
-        text = (f"При $N = {big}$ и $P \\leq {max(small or [1])}$ время программ MPI и OpenMP одинаково в пределах "
-                f"{percent(max(abs(x - 1) for x in t_ratio))} (таблица <<tab:mpi_vs_omp>>, рис. <<fig:mpi_vs_omp.png>>): "
-                "работа распределена одинаково (у процесса или потока — $\\lfloor m/P \\rfloor$ или "
-                "$\\lceil m/P \\rceil$ блочных строк шага), и при большом $N$ обмены почти ничего не стоят. ")
-        text += (f"При $P = {p8}$ программа MPI {'медленнее' if r8 > 1 else 'быстрее'} на {percent(abs(r8 - 1))}. "
-                 if abs(r8 - 1) >= 0.02 else f"При $P = {p8}$ — тоже практически одинаково. ")
-        if s_ratio:
-            text += (f"При $N = {n_mid}$ ускорение MPI ниже на {dec(100 * (1 - max(s_ratio)), 0)}–"
-                     f"{dec(100 * (1 - min(s_ratio)), 0)} % уже при малых $P$: пересылаемая строка $j$ копируется "
-                     "в память каждого процесса, а процессы ждут рассылки, тогда как потоки OpenMP читают общую память "
-                     "напрямую. " if max(s_ratio) < 0.98 else
-                     f"При $N = {n_mid}$ и малых $P$ ускорения тоже близки. ")
-        text += ("При большом числе процессов (потоков) обе программы упираются в одно и то же ограничение компьютера, "
-                 "а замеры неустойчивы между прогонами, поэтому различия там в пределах разброса (п. «Большое число "
-                 "процессов»).")
+
+        def deficit(mode, p):  # насколько ускорение MPI ниже, чем у OpenMP, при N = n_mid
+            return 1 - s(mode, n_mid, p) / s_omp(mode, n_mid, p) if s_omp(mode, n_mid, p) else 0.0
+
+        lagging = [p for p in close if p > 1 and deficit("block", p) > 0.02]
+        if lagging:
+            later = [p for p in close if p >= lagging[0]]
+            lo, hi = (dec(100 * f(deficit("block", p) for p in later), 0) for f in (min, max))
+            hi_lag = hi
+            hi_phases = max(deficit("phases", p) for p in later)
+            text += (f"При $N = {n_mid}$ ускорение MPI начиная с $P = {lagging[0]}$ ниже, чем у OpenMP, "
+                     + (f"на {lo}–{hi} %" if lo not in ("0", hi) else f"до {hi} %")
+                     + (f" (у `phases`, где рассылок вдвое больше, — до {dec(100 * hi_phases, 0)} %)"
+                        if hi_phases > max(deficit("block", p) for p in later) + 0.02 else "")
+                     + ": пересылаемая строка $j$ копируется в память каждого процесса, а процессы ждут рассылки, "
+                       "тогда как потоки OpenMP читают общую память напрямую. ")
+        else:
+            text += f"При $N = {n_mid}$ ускорения тоже близки. "
+        beyond_omp = [p for p in omp_common if p > p_cores]
+        if beyond_omp and omp_reaches:
+            text += (f"При $P > {p_cores}$ (исполнителей больше, чем ядер; п. «Большое число процессов») время программы "
+                     f"MPI при $N = {big}$ составляет "
+                     + and_list(f"{dec(100 * t_ratio[p], 0)} %" for p in beyond_omp)
+                     + f" от времени программы OpenMP при $P$ = {and_list(map(str, beyond_omp))} (стратегия `block`).")
+        elif not omp_reaches:
+            text += ("При большом числе процессов (потоков) обе программы упираются в одно и то же ограничение "
+                     "компьютера, а замеры неустойчивы между прогонами, поэтому различия там в пределах разброса "
+                     "(п. «Большое число процессов»).")
     else:
         text = ("Сравнение с OpenMP не выполнялось: результаты лабораторной работы № 3 получены на другом компьютере "
                 "или отсутствуют.")
     v["analysis_omp"] = text
 
     # --- большое число процессов
-    l3 = info.get("Кэш L3", "")
     text = ""
-    gap = p_agree is not None and p_agree < p_cores
-    if gap or p_agree is None:
-        at_cores = [s(mode, n, p_cores) / model[mode, n, p_cores] for mode in MODES for n in fixed]
-        text += (f"При $P = {p_cores}$ (все физические ядра) ускорение составляет {dec(100 * min(at_cores), 0)}–"
-                 f"{dec(100 * max(at_cores), 0)} % от модели (таблица <<tab:model>>). ")
+    if exchanges:
+        lo, hi = (dec(100 * f(at_cores.values()), 0) for f in (min, max))
+        per_mode = "; ".join(f"у `{mode}` — {' / '.join(dec(100 * at_cores[mode, n], 0) for n in fixed)} %"
+                             for mode in MODES)
+        text += (f"При $P = {p_cores}$ (все физические ядра) ускорение составляет {lo}–{hi} % от модели ({per_mode} "
+                 f"при $N = {' / '.join(map(str, fixed))}$; таблица <<tab:model>>): отставание тем больше, чем меньше "
+                 "$N$. ")
+        if has_omp:
+            text += (f"Программа OpenMP (лабораторная работа № 3) на том же компьютере при $P = {p_cores}$ достигает "
+                     f"{dec(100 * min(omp_at_cores), 0)}–{dec(100 * max(omp_at_cores), 0)} % этой же модели, поэтому "
+                     "отставание MPI — цена обменов, а не свойство компьютера. ")
+        else:
+            text += ("Так и должна вести себя цена обменов: вычисления растут как $N^3$, пересылки — как $N^2$. ")
+        text += ("Рассылка строки $j$ стоит на критическом пути каждого шага: следующий шаг не начнётся, пока строка "
+                 "не дойдёт до всех процессов. С ростом $P$ время вычислений процесса на шаге убывает как $1/P$, а время "
+                 "рассылки — нет: строку $j$ целиком получает каждый процесс, поэтому доля рассылок растёт.")
+        if all(at_cores["phases", n] < at_cores["block", n] for n in fixed):
+            text += " У `phases` рассылок на шаге две, и её отставание от модели больше."
+        text += (" Замеры при этом устойчивы: при $P \\leq "
+                 f"{p_cores}$ медиана повторов превышает минимальное время не более чем на "
+                 f"{percent(max(spread(p) for p in within) - 1)}.")
+    elif gap or p_agree is None:
+        text += (f"При $P = {p_cores}$ (все физические ядра) ускорение составляет {dec(100 * min(at_cores.values()), 0)}–"
+                 f"{dec(100 * max(at_cores.values()), 0)} % от модели (таблица <<tab:model>>). ")
         plateau = [p for p in procs if 8 <= p < p_max] or [p for p in procs if p > (p_agree or 1)] or [p_max]
         gf_big = {p: max(gflops(big, m.t("mpi", mode, big, p)) for mode in MODES) for p in plateau}
         text += (f"Суммарная производительность при $N = {big}$ — "
@@ -500,15 +580,13 @@ def compute(m: Measurements, info: dict, results_dir: Path, omp_dir: Path) -> tu
                      "больше. ")
         else:
             text += ". "
-        spread_low = max((m.median[k] / m.time[k] for k in m.time if k[0] == "mpi" and k[2] >= fixed[0]
-                          and k[3] <= 4), default=1.0)
-        spread_high = max((m.median[k] / m.time[k] for k in m.time
-                           if k[0] == "mpi" and k[2] >= fixed[0] and (p_agree or 1) < k[3] < p_max), default=1.0)
+        spread_low = max(spread(p) for p in procs if p <= 4)
+        spread_high = max((spread(p) for p in procs if (p_agree or 1) < p < p_max), default=1.0)
         if spread_high > spread_low + 0.03:
             text += (f"Замеры при большом $P$ и менее устойчивы: медиана превышает минимальное время до "
                      f"{percent(spread_high - 1)}, а при $P \\leq 4$ — до {percent(spread_low - 1)}. ")
         text += ("\n\nРасхождение с моделью — не только обмены: модель не учитывает и свойства компьютера. ")
-        if has_omp:
+        if has_omp and not omp_reaches:
             text += ("Программа OpenMP (лабораторная работа № 3), у которой нет пересылок, упирается в то же "
                      "ограничение. ")
         text += ("Вероятные причины — снижение частоты процессора при нагрузке на много ядер и размещение процессов "
@@ -518,24 +596,36 @@ def compute(m: Measurements, info: dict, results_dir: Path, omp_dir: Path) -> tu
     else:
         text += (f"При всех $P \\leq {p_cores}$ (до числа физических ядер) ускорение близко к модели: обмены и "
                  "ожидание почти ничего не стоят.")
-    if p_max > p_cores:
-        beyond = [p for p in procs if p > p_cores]
+    beyond = [p for p in procs if p > p_cores]
+    collapse = sorted((s(mode, n, p_max), mode, n) for mode in MODES for n in sizes if s(mode, n, p_max) < 0.5)
+    # обвал эпизодический, если при меньших или тех же N (в той же или другой стратегии) его нет
+    counter = sorted((n, mode) for mode in MODES for n in sizes
+                     if collapse and n <= max(c[2] for c in collapse) and s(mode, n, p_max) >= 1)
+    if beyond:
         s_c = s("block", big, p_cores)
         text += (f"\n\nПри $P > {p_cores}$ процессов больше, чем физических ядер, и два процесса делят одно ядро "
                  f"(Hyper-Threading): при $N = {big}$ ускорение "
                  + and_list(f"{dec(s('block', big, p))} при $P = {p}$" for p in beyond)
                  + f" против {dec(s_c)} при $P = {p_cores}$. ")
-        collapse = [n for n in sizes if s("block", n, p_max) < 0.5]
+        if len(beyond) > 1 and p_max == 2 * p_cores and s("block", big, beyond[0]) < min(s_c, s("block", big, p_max)):
+            text += (f"Вероятная причина провала при $P = {beyond[0]}$ — неравномерность: на {beyond[0] - p_cores} ядрах "
+                     f"работают по два процесса, на остальных {2 * p_cores - beyond[0]} — по одному; процессы на общих "
+                     f"ядрах считают медленнее, а каждый шаг ждёт самого медленного. При $P = {p_max}$ по два процесса "
+                     "на каждом ядре, и нагрузка снова равномерна. ")
         if collapse:
-            slowdown = 1 / s("block", collapse[0], p_max)
-            text += (f"При $P = {p_max}$ (все логические процессоры) и малых $N$ программа резко замедляется — "
-                     f"{times_slower(slowdown)} при $N = {collapse[0]}$"
-                     + (f", {times_slower(1 / s('block', collapse[-1], p_max))} при $N = {collapse[-1]}$"
-                        if len(collapse) > 1 else "")
-                     + " по сравнению с одним процессом. Вероятная причина — процессов столько же, сколько логических "
-                       "процессоров, а реализация MPI ждёт сообщений активным опросом (процесс занимает свой "
-                       "логический процессор и во время ожидания); когда операционной системе нужен процессор для своих "
-                       "задач, она вытесняет какой-то процесс, и рассылка на каждом шаге ждёт его. ")
+            worst = [min(c for c in collapse if c[1] == mode) for mode in MODES if any(c[1] == mode for c in collapse)]
+            text += (f"При $P = {p_max}$ (все логические процессоры) и малых $N$ "
+                     + ("отдельные замеры резко замедляются" if counter else "программа резко замедляется") + " — "
+                     + and_list(f"{times_slower(1 / sv)} у `{mode}` при $N = {n}$" for sv, mode, n in worst)
+                     + " по сравнению с одним процессом")
+            if counter:
+                n2, mode2 = counter[0]
+                text += (f", тогда как у `{mode2}` при $N = {n2}$ ускорение {dec(s(mode2, n2, p_max))}: обвал "
+                         "эпизодический — он случается не при всех малых $N$ и не в обеих стратегиях сразу")
+            text += (". Вероятная причина — процессов столько же, сколько логических процессоров, а реализация MPI ждёт "
+                     "сообщений активным опросом (процесс занимает свой логический процессор и во время ожидания); "
+                     "когда операционной системе нужен процессор для своих задач, она вытесняет какой-то процесс, и "
+                     "рассылка на каждом шаге ждёт его. ")
             if has_omp and s_omp("block", n0, p_max):
                 text += (f"У программы OpenMP при $P = {p_max}$ такого обвала нет ({dec(s_omp('block', n0, p_max))} при "
                          f"$N = {n0}$): ожидающие потоки там засыпают. ")
@@ -565,9 +655,19 @@ def compute(m: Measurements, info: dict, results_dir: Path, omp_dir: Path) -> tu
                            "при большинстве $N$"
                            + (f" (на {percent(gain)} при $N = {big}$, $P = {p_main}$)." if gain >= 0.02 else "."))
     if has_omp:
-        conclusions.append("При большом $N$ и малом $P$ программы MPI и OpenMP работают одинаково быстро; при меньших $N$ "
-                           "MPI немного медленнее из-за пересылок.")
-    if gap:
+        conclusions.append(f"При $N = {big}$ и $P \\leq {p_same}$ программы MPI и OpenMP работают одинаково быстро; при "
+                           "меньших $N$ MPI медленнее из-за пересылок"
+                           + (f" (при $N = {n_mid}$ — до {hi_lag} %)." if lagging else "."))
+    if exchanges:
+        conclusions.append(
+            f"При $P = {p_cores}$ ускорение — {dec(100 * min(at_cores.values()), 0)}–"
+            f"{dec(100 * max(at_cores.values()), 0)} % модели без обменов, тем меньше, чем меньше $N$: это цена обменов"
+            + (" (программа OpenMP на том же компьютере модели достигает)" if has_omp else "") + "."
+            + (" Процессы сверх числа ядер ускорение " + ("не увеличивают" if max(s("block", big, p) for p in beyond)
+                                                         <= s("block", big, p_cores) else "почти не увеличивают")
+               + (", а при всех логических процессорах отдельные замеры с малыми $N$ резко замедляются" if collapse
+                  else "") + ": запускать процессов MPI больше, чем физических ядер, не нужно." if beyond else ""))
+    elif gap:
         conclusions.append(f"На всех {p_cores} ядрах ускорение ниже модели, процессы сверх числа ядер его почти не "
                            "увеличивают, а при всех логических процессорах программа с малыми $N$ резко замедляется: "
                            "при большом числе процессов ускорение ограничивает уже компьютер.")
